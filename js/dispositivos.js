@@ -12,7 +12,8 @@ const state = {
   currentUser: null,
   devices: [],
   editingId: null,
-  webhookActuatorId: null
+  webhookActuatorId: null,
+  webhookProbeUrl: null
 };
 let devicesRefreshInFlight = false;
 const elements = {
@@ -47,6 +48,7 @@ const elements = {
   webhookDialog: document.querySelector('#webhookDialog'),
   webhookClose: document.querySelector('#webhookDialogClose'),
   webhookReload: document.querySelector('#webhookReload'),
+  webhookProbe: document.querySelector('#webhookProbe'),
   webhookDevice: document.querySelector('#webhookDevice'),
   webhookMessage: document.querySelector('#webhookMessage'),
   webhookStatusGrid: document.querySelector('#webhookStatusGrid'),
@@ -254,6 +256,8 @@ function renderWebhookConfiguration(data) {
   elements.webhookUrls.innerHTML =
     webhookCopyBlock('URL de encendido', data.urls.encendido) +
     webhookCopyBlock('URL de apagado', data.urls.apagado);
+  state.webhookProbeUrl = data.urls.prueba || null;
+  elements.webhookProbe.disabled = !state.webhookProbeUrl;
   elements.webhookRpcEndpoint.textContent = data.rpc_endpoint_local
     ? 'Endpoint local: ' + data.rpc_endpoint_local
     : 'Configura una IP local en el dispositivo para usar RPC.';
@@ -291,6 +295,8 @@ async function loadWebhookConfiguration(id) {
 
 function openWebhooks(id) {
   state.webhookActuatorId = id;
+  state.webhookProbeUrl = null;
+  elements.webhookProbe.disabled = true;
   elements.webhookDevice.textContent = id;
   elements.webhookStatusGrid.innerHTML = '';
   elements.webhookUrls.innerHTML = '';
@@ -298,6 +304,24 @@ function openWebhooks(id) {
   elements.webhookDeliveries.innerHTML = '';
   elements.webhookDialog.showModal();
   void loadWebhookConfiguration(id);
+}
+
+async function probeWebhookReceiver() {
+  if (!state.webhookProbeUrl) return;
+  elements.webhookProbe.disabled = true;
+  showMessage(elements.webhookMessage, 'Validando receptor, token, dispositivo y canal...');
+  try {
+    const result = await requestJson(state.webhookProbeUrl);
+    const actuator = result?.data?.actuadores?.join(', ') || state.webhookActuatorId;
+    showMessage(
+      elements.webhookMessage,
+      'Receptor listo para ' + actuator + '. Esta prueba no cambio la salida fisica.'
+    );
+  } catch (error) {
+    showMessage(elements.webhookMessage, error.message, true);
+  } finally {
+    elements.webhookProbe.disabled = false;
+  }
 }
 
 async function copyWebhookValue(button) {
@@ -521,6 +545,7 @@ elements.webhookClose.addEventListener('click', () => elements.webhookDialog.clo
 elements.webhookReload.addEventListener('click', () => {
   if (state.webhookActuatorId) void loadWebhookConfiguration(state.webhookActuatorId);
 });
+elements.webhookProbe.addEventListener('click', () => void probeWebhookReceiver());
 elements.webhookDialog.addEventListener('click', (event) => {
   const copyButton = event.target.closest('[data-copy-webhook]');
   if (copyButton) void copyWebhookValue(copyButton);

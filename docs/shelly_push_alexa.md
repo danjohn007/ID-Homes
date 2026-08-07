@@ -46,11 +46,17 @@ Conserva `cron_shelly.php` cada minuto como respaldo. No hace falta otro cron pa
 
 1. En ID Industrial entra como administrador a `Administrar dispositivos`.
 2. En el Shelly correcto pulsa `Webhooks`.
-3. Copia la `URL de encendido`.
-4. En Shelly Smart Control abre el dispositivo, entra a `Acciones` o `Webhooks` y crea una accion siempre activa.
-5. Selecciona la condicion `Encender`, intervalo de repeticion `0` y pega la URL.
-6. Repite el proceso con la condicion `Apagar` y la URL de apagado.
-7. Verifica que ambas acciones queden habilitadas.
+3. Pulsa `Probar receptor`. Debe confirmar token, Device ID y canal sin cambiar la salida fisica.
+4. Copia la `URL de encendido`.
+5. En Shelly Smart Control abre el dispositivo, entra a `Acciones` o `Webhooks` y crea una accion siempre activa.
+6. Selecciona la condicion `Encender`, intervalo de repeticion `0` y pega la URL.
+7. Repite el proceso con la condicion `Apagar` y la URL de apagado.
+8. Verifica que ambas acciones queden habilitadas.
+
+No reutilices `shelly_cloud_auth_key` como parametro `token`. Las URLs deben
+copiarse completas desde el dialogo `Webhooks`; el receptor valida exclusivamente
+`shelly_webhook_token`. Si detecta la clave Cloud en una accion antigua, la entrega
+aparecera como `ERROR` sin guardar la clave recibida.
 
 El panel tambien genera dos cargas `Webhook.Create` para instalacion RPC local. Deben enviarse mediante POST a `http://IP_DEL_SHELLY/rpc` desde una computadora conectada a la misma LAN. El hosting cPanel no puede acceder a una IP privada como `192.168.x.x`.
 

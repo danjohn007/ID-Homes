@@ -21,6 +21,62 @@ $recibido = trim((string) (
     ?? ''
 ));
 if ($recibido === '' || !hash_equals($esperado, $recibido)) {
+    // Error frecuente: usar la clave privada de Shelly Cloud en la URL del
+    // webhook. Registrar solamente ese caso conocido permite diagnosticarlo
+    // sin aceptar la peticion ni conservar ningun secreto.
+    $cloudAuthKey = trim((string) ($configLocal['shelly_cloud_auth_key'] ?? ''));
+    $usaClaveCloud = $recibido !== ''
+        && $cloudAuthKey !== ''
+        && hash_equals($cloudAuthKey, $recibido);
+    if ($usaClaveCloud && idindWebhookAuditoriaDisponible($pdo)) {
+        $deviceIdRechazado = strtolower(trim((string) ($_GET['device_id'] ?? $_GET['id'] ?? '')));
+        $canalRechazado = filter_var(
+            $_GET['channel'] ?? $_GET['canal'] ?? null,
+            FILTER_VALIDATE_INT
+        );
+        $salidaRechazada = strtolower(trim((string) ($_GET['output'] ?? $_GET['on'] ?? '')));
+        if (
+            $deviceIdRechazado !== ''
+            && strlen($deviceIdRechazado) <= 100
+            && $canalRechazado !== false
+            && $canalRechazado >= 0
+            && $canalRechazado <= 31
+            && in_array($salidaRechazada, ['0', '1', 'false', 'true', 'off', 'on'], true)
+        ) {
+            $encendidaRechazada = in_array($salidaRechazada, ['1', 'true', 'on'], true);
+            $stmtRechazados = $pdo->prepare(
+                'SELECT id FROM actuadores_shelly
+                 WHERE LOWER(shelly_device_id) = :device_id AND canal = :canal'
+            );
+            $stmtRechazados->execute([
+                'device_id' => $deviceIdRechazado,
+                'canal' => $canalRechazado,
+            ]);
+            foreach ($stmtRechazados->fetchAll() as $actuadorRechazado) {
+                $entregaRechazada = idindWebhookCrearEntrega(
+                    $pdo,
+                    (string) $actuadorRechazado['id'],
+                    $encendidaRechazada,
+                    $metodo,
+                    [
+                        'device_id' => $deviceIdRechazado,
+                        'channel' => $canalRechazado,
+                        'output' => $encendidaRechazada ? 1 : 0,
+                    ]
+                );
+                idindWebhookCerrarEntrega(
+                    $pdo,
+                    $entregaRechazada,
+                    'ERROR',
+                    false,
+                    false,
+                    0,
+                    [],
+                    'La accion usa shelly_cloud_auth_key. Reemplazala con la URL generada por ID Industrial.'
+                );
+            }
+        }
+    }
     responderJson(401, ['ok' => false, 'error' => 'Token webhook invalido']);
 }
 
@@ -55,6 +111,28 @@ $stmt->execute(['device_id' => $deviceId, 'canal' => $canal]);
 $actuadores = $stmt->fetchAll();
 if ($actuadores === []) {
     responderJson(404, ['ok' => false, 'error' => 'Canal Shelly no registrado']);
+}
+
+$esPrueba = in_array(
+    strtolower(trim((string) ($entrada['probe'] ?? ''))),
+    ['1', 'true', 'yes'],
+    true
+);
+if ($esPrueba) {
+    responderJson(200, [
+        'ok' => true,
+        'data' => [
+            'receptor' => 'LISTO',
+            'device_id' => $deviceId,
+            'channel' => $canal,
+            'actuadores' => array_values(array_map(
+                static function (array $actuador): string {
+                    return (string) $actuador['id'];
+                },
+                $actuadores
+            )),
+        ],
+    ]);
 }
 
 $eventos = 0;

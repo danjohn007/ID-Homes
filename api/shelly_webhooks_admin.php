@@ -79,7 +79,13 @@ $urlApagado = $baseApi . '/shelly_webhook.php?' . http_build_query(
     '&',
     PHP_QUERY_RFC3986
 );
-if (strlen($urlEncendido) > 300 || strlen($urlApagado) > 300) {
+$urlPrueba = $baseApi . '/shelly_webhook.php?' . http_build_query(
+    array_merge($parametrosBase, ['output' => 0, 'probe' => 1]),
+    '',
+    '&',
+    PHP_QUERY_RFC3986
+);
+if (strlen($urlEncendido) > 300 || strlen($urlApagado) > 300 || strlen($urlPrueba) > 300) {
     responderJson(503, [
         'ok' => false,
         'error' => 'La URL generada supera el limite de 300 caracteres de Shelly',
@@ -164,6 +170,7 @@ responderJson(200, [
         'urls' => [
             'encendido' => $urlEncendido,
             'apagado' => $urlApagado,
+            'prueba' => $urlPrueba,
         ],
         'rpc' => $rpc,
         'rpc_endpoint_local' => empty($actuador['ip_local'])
