@@ -3,10 +3,17 @@ const DEVICES_URL = './api/dispositivos_admin.php';
 const SHELLY_TEST_URL = './api/shelly_probar_conexion.php';
 const SHELLY_COMMAND_URL = './api/shelly_comando.php';
 const SHELLY_SYNC_LIVE_URL = './api/shelly_sync_live.php';
+const SHELLY_WEBHOOKS_URL = './api/shelly_webhooks_admin.php';
 const LOGOUT_URL = './api/auth/logout.php';
 const DEVICES_REFRESH_MS = 5000;
 
-const state = { csrf: '', currentUser: null, devices: [], editingId: null };
+const state = {
+  csrf: '',
+  currentUser: null,
+  devices: [],
+  editingId: null,
+  webhookActuatorId: null
+};
 let devicesRefreshInFlight = false;
 const elements = {
   name: document.querySelector('#sessionUserName'),
@@ -36,7 +43,17 @@ const elements = {
   dialogMessage: document.querySelector('#dialogMessage'),
   submit: document.querySelector('#dialogSubmit'),
   cancel: document.querySelector('#dialogCancel'),
-  close: document.querySelector('#dialogClose')
+  close: document.querySelector('#dialogClose'),
+  webhookDialog: document.querySelector('#webhookDialog'),
+  webhookClose: document.querySelector('#webhookDialogClose'),
+  webhookReload: document.querySelector('#webhookReload'),
+  webhookDevice: document.querySelector('#webhookDevice'),
+  webhookMessage: document.querySelector('#webhookMessage'),
+  webhookStatusGrid: document.querySelector('#webhookStatusGrid'),
+  webhookUrls: document.querySelector('#webhookUrls'),
+  webhookRpcEndpoint: document.querySelector('#webhookRpcEndpoint'),
+  webhookRpcPayloads: document.querySelector('#webhookRpcPayloads'),
+  webhookDeliveries: document.querySelector('#webhookDeliveries')
 };
 
 function escapeHtml(value) {
@@ -124,6 +141,7 @@ function renderDevices() {
       : escapeHtml(dateLabel(device.ultima_conexion));
     const shellyActions = isShelly
       ? '<button class="button button-secondary button-small" type="button" data-action="test" data-id="' + escapeHtml(device.id) + '">Probar</button>' +
+        '<button class="button button-secondary button-small" type="button" data-action="webhooks" data-id="' + escapeHtml(device.id) + '">Webhooks</button>' +
         '<button class="button button-small ' + (shellyOutput ? 'button-danger' : 'button-primary') + '" type="button" data-action="shelly-output" data-output="' + (shellyOutput ? 'APAGAR' : 'ENCENDER') + '" data-id="' + escapeHtml(device.id) + '">' + (shellyOutput ? 'Apagar' : 'Encender') + '</button>'
       : '';
 
@@ -175,6 +193,135 @@ async function controlShelly(id, action) {
   }
 }
 
+function webhookStatusCard(label, delivery) {
+  const received = delivery?.recibido_en ? dateLabel(delivery.recibido_en) : 'Sin entrega';
+  const stateLabel = delivery?.estado || 'PENDIENTE';
+  const statusClass = stateLabel === 'PROCESADA' ? 'ok' : stateLabel === 'ERROR' ? 'error' : 'pending';
+  const detail = delivery?.ultimo_error
+    ? delivery.ultimo_error
+    : delivery
+      ? (delivery.cambio_estado ? 'Estado actualizado' : 'Entrega recibida sin cambio de estado')
+      : 'Activa el canal para comprobar este evento.';
+  return (
+    '<article class="webhook-status ' + statusClass + '">' +
+      '<span>' + escapeHtml(label) + '</span>' +
+      '<strong>' + escapeHtml(stateLabel) + '</strong>' +
+      '<small>' + escapeHtml(received) + '</small>' +
+      '<small>' + escapeHtml(detail) + '</small>' +
+    '</article>'
+  );
+}
+
+function webhookCopyBlock(label, value, code = false) {
+  const content = escapeHtml(value || '');
+  return (
+    '<div class="webhook-copy-block">' +
+      '<div class="webhook-copy-heading"><strong>' + escapeHtml(label) + '</strong>' +
+        '<button class="button button-secondary button-small" type="button" data-copy-webhook>Copiar</button>' +
+      '</div>' +
+      (code
+        ? '<pre tabindex="0">' + content + '</pre>'
+        : '<textarea rows="3" readonly>' + content + '</textarea>') +
+    '</div>'
+  );
+}
+
+function renderWebhookDeliveries(deliveries) {
+  if (!deliveries.length) {
+    elements.webhookDeliveries.innerHTML =
+      '<p class="webhook-empty">Todavia no se ha recibido ningun evento de este canal.</p>';
+    return;
+  }
+  elements.webhookDeliveries.innerHTML = deliveries.map((delivery) => (
+    '<div class="webhook-delivery">' +
+      '<div><strong>' + escapeHtml(delivery.evento) + '</strong>' +
+        '<small>' + escapeHtml(dateLabel(delivery.recibido_en)) + '</small></div>' +
+      '<span class="webhook-delivery-source">' + escapeHtml(delivery.metodo) + '</span>' +
+      '<span class="webhook-delivery-state ' + (delivery.estado === 'ERROR' ? 'error' : '') + '">' +
+        escapeHtml(delivery.estado) + '</span>' +
+      '<small>' + escapeHtml(delivery.ultimo_error || (delivery.cambio_externo ? 'Cambio externo' : 'Confirmacion o sin cambio')) + '</small>' +
+    '</div>'
+  )).join('');
+}
+
+function renderWebhookConfiguration(data) {
+  const actuator = data.actuador;
+  elements.webhookDevice.textContent =
+    actuator.id + ' · ' + actuator.modelo + ' · canal ' + actuator.canal;
+  elements.webhookStatusGrid.innerHTML =
+    webhookStatusCard('Encendido', data.ultimas_entregas?.encendido) +
+    webhookStatusCard('Apagado', data.ultimas_entregas?.apagado);
+  elements.webhookUrls.innerHTML =
+    webhookCopyBlock('URL de encendido', data.urls.encendido) +
+    webhookCopyBlock('URL de apagado', data.urls.apagado);
+  elements.webhookRpcEndpoint.textContent = data.rpc_endpoint_local
+    ? 'Endpoint local: ' + data.rpc_endpoint_local
+    : 'Configura una IP local en el dispositivo para usar RPC.';
+  elements.webhookRpcPayloads.innerHTML =
+    webhookCopyBlock('Crear webhook de encendido', JSON.stringify(data.rpc.encendido, null, 2), true) +
+    webhookCopyBlock('Crear webhook de apagado', JSON.stringify(data.rpc.apagado, null, 2), true);
+  renderWebhookDeliveries(data.entregas || []);
+  showMessage(
+    elements.webhookMessage,
+    data.auditoria_disponible
+      ? 'Receptor listo. Configura las dos acciones y verifica una entrega de cada tipo.'
+      : 'Ejecuta migracion_shelly_webhooks_mysql57.sql para activar el diagnostico de entregas.',
+    !data.auditoria_disponible
+  );
+}
+
+async function loadWebhookConfiguration(id) {
+  elements.webhookReload.disabled = true;
+  showMessage(elements.webhookMessage, 'Consultando configuracion y entregas...');
+  try {
+    const result = await requestJson(
+      SHELLY_WEBHOOKS_URL + '?actuador_id=' + encodeURIComponent(id)
+    );
+    renderWebhookConfiguration(result.data);
+  } catch (error) {
+    showMessage(elements.webhookMessage, error.message, true);
+    elements.webhookStatusGrid.innerHTML = '';
+    elements.webhookUrls.innerHTML = '';
+    elements.webhookRpcPayloads.innerHTML = '';
+    elements.webhookDeliveries.innerHTML = '';
+  } finally {
+    elements.webhookReload.disabled = false;
+  }
+}
+
+function openWebhooks(id) {
+  state.webhookActuatorId = id;
+  elements.webhookDevice.textContent = id;
+  elements.webhookStatusGrid.innerHTML = '';
+  elements.webhookUrls.innerHTML = '';
+  elements.webhookRpcPayloads.innerHTML = '';
+  elements.webhookDeliveries.innerHTML = '';
+  elements.webhookDialog.showModal();
+  void loadWebhookConfiguration(id);
+}
+
+async function copyWebhookValue(button) {
+  const block = button.closest('.webhook-copy-block');
+  const source = block?.querySelector('textarea, pre');
+  const value = source?.value ?? source?.textContent ?? '';
+  if (!value) return;
+  try {
+    await navigator.clipboard.writeText(value);
+  } catch {
+    const fallback = document.createElement('textarea');
+    fallback.value = value;
+    fallback.style.position = 'fixed';
+    fallback.style.opacity = '0';
+    document.body.appendChild(fallback);
+    fallback.select();
+    document.execCommand('copy');
+    fallback.remove();
+  }
+  const original = button.textContent;
+  button.textContent = 'Copiado';
+  window.setTimeout(() => { button.textContent = original; }, 1200);
+}
+
 function populateLinkedDevices(selectedId = '') {
   const esp32Devices = state.devices.filter((device) => device.tipo === 'ESP32');
   elements.shellyLinkedDevice.innerHTML =
@@ -205,7 +352,12 @@ async function loadDevices() {
 }
 
 async function refreshDevicesQuietly() {
-  if (document.hidden || elements.dialog.open || devicesRefreshInFlight) return;
+  if (
+    document.hidden ||
+    elements.dialog.open ||
+    elements.webhookDialog.open ||
+    devicesRefreshInFlight
+  ) return;
   devicesRefreshInFlight = true;
   try {
     await requestJson(SHELLY_SYNC_LIVE_URL, {
@@ -365,6 +517,14 @@ async function logout() {
 elements.newButton.addEventListener('click', openCreate);
 elements.cancel.addEventListener('click', () => elements.dialog.close());
 elements.close.addEventListener('click', () => elements.dialog.close());
+elements.webhookClose.addEventListener('click', () => elements.webhookDialog.close());
+elements.webhookReload.addEventListener('click', () => {
+  if (state.webhookActuatorId) void loadWebhookConfiguration(state.webhookActuatorId);
+});
+elements.webhookDialog.addEventListener('click', (event) => {
+  const copyButton = event.target.closest('[data-copy-webhook]');
+  if (copyButton) void copyWebhookValue(copyButton);
+});
 elements.form.addEventListener('submit', submitDevice);
 elements.type.addEventListener('change', () => updateDeviceType(elements.type.value));
 elements.logout.addEventListener('click', logout);
@@ -376,6 +536,7 @@ elements.table.addEventListener('click', (event) => {
     void changeStatus(button.dataset.id, button.dataset.status);
   }
   if (button.dataset.action === 'test') void testShelly(button.dataset.id);
+  if (button.dataset.action === 'webhooks') openWebhooks(button.dataset.id);
   if (button.dataset.action === 'shelly-output') {
     void controlShelly(button.dataset.id, button.dataset.output);
   }

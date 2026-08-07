@@ -9,9 +9,13 @@ import { AuthProvider } from '@/context/auth-context';
 import { useAuth } from '@/context/auth-context';
 import { colors } from '@/theme/colors';
 
-function notificationAlertId(
+type NotificationTarget =
+  | { kind: 'alert'; id: string }
+  | { kind: 'shelly'; id: string };
+
+function notificationTarget(
   response: Notifications.NotificationResponse | null,
-): string | null {
+): NotificationTarget | null {
   const data = response?.notification.request.content.data;
   if (!data) return null;
 
@@ -22,7 +26,7 @@ function notificationAlertId(
       && /^\d+$/.test(String(candidate))
       && Number(candidate) > 0
     ) {
-      return String(candidate);
+      return { kind: 'alert', id: String(candidate) };
     }
   }
 
@@ -30,13 +34,24 @@ function notificationAlertId(
     (value): value is string => typeof value === 'string',
   );
   const routeMatch = route?.match(/\/alerta\/(\d+)(?:[/?#]|$)/i);
-  return routeMatch?.[1] ?? null;
+  if (routeMatch?.[1]) return { kind: 'alert', id: routeMatch[1] };
+
+  const shellyCandidates = [data.actuadorId, data.actuador_id, data.shellyId];
+  for (const candidate of shellyCandidates) {
+    if (typeof candidate === 'string' && /^[A-Za-z0-9_-]{1,64}$/.test(candidate)) {
+      return { kind: 'shelly', id: candidate };
+    }
+  }
+  const shellyMatch = route?.match(/\/shelly\/([^/?#]+)(?:[/?#]|$)/i);
+  return shellyMatch?.[1]
+    ? { kind: 'shelly', id: decodeURIComponent(shellyMatch[1]) }
+    : null;
 }
 
 function NotificationNavigationObserver() {
   const router = useRouter();
   const { loading, user } = useAuth();
-  const [pendingAlertId, setPendingAlertId] = useState<string | null>(null);
+  const [pendingTarget, setPendingTarget] = useState<NotificationTarget | null>(null);
   const processedResponses = useRef(new Set<string>());
 
   const captureAlert = useCallback(
@@ -49,11 +64,11 @@ function NotificationNavigationObserver() {
       ].join(':');
       if (processedResponses.current.has(responseKey)) return;
 
-      const alertId = notificationAlertId(response);
-      if (!alertId) return;
+      const target = notificationTarget(response);
+      if (!target) return;
 
       processedResponses.current.add(responseKey);
-      setPendingAlertId(alertId);
+      setPendingTarget(target);
     },
     [],
   );
@@ -73,23 +88,24 @@ function NotificationNavigationObserver() {
       Platform.OS === 'web'
       || loading
       || !user
-      || pendingAlertId === null
+      || pendingTarget === null
     ) {
       return;
     }
 
-    const alertId = pendingAlertId;
+    const target = pendingTarget;
     const frame = requestAnimationFrame(() => {
-      router.push({
-        pathname: '/alerta/[id]',
-        params: { id: alertId },
-      });
-      setPendingAlertId(null);
+      if (target.kind === 'alert') {
+        router.push({ pathname: '/alerta/[id]', params: { id: target.id } });
+      } else {
+        router.push({ pathname: '/shelly/[id]', params: { id: target.id } });
+      }
+      setPendingTarget(null);
       Notifications.clearLastNotificationResponse();
     });
 
     return () => cancelAnimationFrame(frame);
-  }, [loading, pendingAlertId, router, user]);
+  }, [loading, pendingTarget, router, user]);
 
   return null;
 }

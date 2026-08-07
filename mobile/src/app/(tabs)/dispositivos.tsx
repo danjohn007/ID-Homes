@@ -1,6 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useRouter, type Href } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useFocusEffect, useRouter, type Href } from 'expo-router';
+import { useCallback, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -269,6 +269,8 @@ export default function DevicesScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
   const [section, setSection] = useState<'ESP32' | 'SHELLY'>('ESP32');
+  const [screenFocused, setScreenFocused] = useState(false);
+  const hasLoadedRef = useRef(false);
 
   const load = useCallback(async (refresh = false, quiet = false) => {
     if (!token) return;
@@ -284,19 +286,22 @@ export default function DevicesScreen() {
         setError(caught instanceof ApiError ? caught.message : 'No fue posible cargar los dispositivos.');
       }
     } finally {
+      hasLoadedRef.current = true;
       if (!quiet) setLoading(false);
       if (refresh) setRefreshing(false);
     }
   }, [section, token]);
 
-  useEffect(() => {
-    void load();
-  }, [load]);
+  useFocusEffect(useCallback(() => {
+    setScreenFocused(true);
+    void load(false, hasLoadedRef.current);
+    return () => setScreenFocused(false);
+  }, [load]));
 
   useForegroundRefresh(
-    () => void load(false, true),
+    () => load(false, true),
     10000,
-    section === 'SHELLY',
+    section === 'SHELLY' && screenFocused,
   );
 
   const online = devices.filter((device) => device.conexion === 'ONLINE').length;

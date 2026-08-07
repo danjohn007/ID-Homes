@@ -81,6 +81,7 @@ export type MobileShellyActuator = {
   apagado_automatico: number | string;
   permite_rutinas: number | string;
   requiere_confirmacion: number | string;
+  notificar_cambios_externos: number | string;
   descripcion: string | null;
   ip_local: string | null;
   modo_control: 'LOCAL' | 'CLOUD' | 'HIBRIDO';
@@ -93,6 +94,7 @@ export type MobileShellyActuator = {
   corriente_a: number | string | null;
   temperatura_c: number | string | null;
   sincronizado_en: string | null;
+  apagado_programado_en: string | null;
   ultimo_error: string | null;
 };
 
@@ -138,6 +140,7 @@ export type MobileShellySaveInput = {
   apagado_automatico: boolean;
   permite_rutinas: boolean;
   requiere_confirmacion: boolean;
+  notificar_cambios_externos: boolean;
   descripcion: string;
   modo_control: 'LOCAL' | 'CLOUD' | 'HIBRIDO';
   dispositivo_vinculado_id: string;

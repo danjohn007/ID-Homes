@@ -28,6 +28,8 @@ return [
     ],
     'retention_raw_days' => 90,
     'retention_hourly_months' => 24,
+    'retention_shelly_event_days' => 365,
+    'retention_push_days' => 90,
     'retention_hours_per_run' => 48,
     'retention_max_runtime_seconds' => 45,
 ];

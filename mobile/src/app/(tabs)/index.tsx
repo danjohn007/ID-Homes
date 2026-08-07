@@ -1,5 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useFocusEffect } from 'expo-router';
+import { useCallback, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
@@ -113,6 +114,7 @@ export default function MonitorScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
+  const [screenFocused, setScreenFocused] = useState(false);
   const requestInFlight = useRef(false);
 
   const load = useCallback(async (
@@ -140,16 +142,16 @@ export default function MonitorScreen() {
     }
   }, [token]);
 
-  useEffect(() => {
-    void load();
-  }, [load]);
+  useFocusEffect(useCallback(() => {
+    setScreenFocused(true);
+    void load('silent');
+    return () => setScreenFocused(false);
+  }, [load]));
 
   useForegroundRefresh(
-    useCallback(() => {
-      void load('silent');
-    }, [load]),
+    useCallback(() => load('silent'), [load]),
     5000,
-    Boolean(token),
+    Boolean(token && screenFocused),
   );
 
   const state = data?.resumen.estado_general ?? 'NORMAL';

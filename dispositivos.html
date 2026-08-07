@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#12161B">
     <title>ID Industrial | Dispositivos</title>
-    <link rel="stylesheet" href="css/usuarios.css?v=20260731-shelly1">
+    <link rel="stylesheet" href="css/usuarios.css?v=20260807-webhooks1">
     <link rel="stylesheet" href="css/motion.css?v=20260804-motion1">
   </head>
   <body>
@@ -155,7 +155,51 @@
         </div>
       </form>
     </dialog>
+    <dialog class="user-dialog webhook-dialog" id="webhookDialog" aria-labelledby="webhookDialogTitle">
+      <section class="webhook-panel">
+        <div class="dialog-heading">
+          <div>
+            <p class="section-label">Sincronizacion inmediata</p>
+            <h2 id="webhookDialogTitle">Webhooks Shelly</h2>
+            <p class="webhook-device" id="webhookDevice">Cargando configuracion...</p>
+          </div>
+          <button class="dialog-close" id="webhookDialogClose" type="button" aria-label="Cerrar">X</button>
+        </div>
+
+        <p class="form-message" id="webhookMessage" aria-live="polite"></p>
+        <div class="webhook-status-grid" id="webhookStatusGrid"></div>
+
+        <section class="webhook-section">
+          <p class="section-label">Opcion recomendada</p>
+          <h3>Configurar en Shelly Smart Control</h3>
+          <ol class="webhook-steps">
+            <li>Abre el dispositivo, entra a <strong>Acciones</strong> y crea una accion siempre activa.</li>
+            <li>Para <strong>Encender</strong>, agrega la URL de encendido y deja el intervalo en 0.</li>
+            <li>Crea otra accion para <strong>Apagar</strong> con la URL de apagado.</li>
+          </ol>
+          <div class="webhook-url-list" id="webhookUrls"></div>
+        </section>
+
+        <details class="webhook-section webhook-advanced">
+          <summary>Instalacion local por RPC</summary>
+          <p id="webhookRpcEndpoint">La IP local no esta configurada.</p>
+          <p class="webhook-note">Envia cada JSON mediante POST al endpoint RPC desde un equipo conectado a la misma red del Shelly.</p>
+          <div class="webhook-code-list" id="webhookRpcPayloads"></div>
+        </details>
+
+        <section class="webhook-section">
+          <div class="webhook-section-heading">
+            <div>
+              <p class="section-label">Diagnostico</p>
+              <h3>Ultimas entregas</h3>
+            </div>
+            <button class="button button-secondary button-small" id="webhookReload" type="button">Actualizar</button>
+          </div>
+          <div class="webhook-deliveries" id="webhookDeliveries"></div>
+        </section>
+      </section>
+    </dialog>
     <script src="js/motion.js?v=20260804-motion1" defer></script>
-    <script src="js/dispositivos.js?v=20260731-shelly-live1" defer></script>
+    <script src="js/dispositivos.js?v=20260807-webhooks1" defer></script>
   </body>
 </html>

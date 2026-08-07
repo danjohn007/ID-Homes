@@ -119,7 +119,7 @@ export function getMobileDevices(
   token: string,
   syncShelly = false,
 ): Promise<MobileDevicesResponse> {
-  const suffix = syncShelly ? '?sincronizar_shelly=1' : '';
+  const suffix = syncShelly ? '?incluir_shelly=1&sincronizar_shelly=1' : '';
   return request<MobileDevicesResponse>(`mobile/dispositivos.php${suffix}`, { token });
 }
 

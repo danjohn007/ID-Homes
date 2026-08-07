@@ -27,6 +27,20 @@ $retencionResumenMeses = configEntera(
     3,
     120
 );
+$retencionEventosShellyDias = configEntera(
+    $configLocal,
+    'retention_shelly_event_days',
+    365,
+    30,
+    3650
+);
+$retencionPushDias = configEntera(
+    $configLocal,
+    'retention_push_days',
+    90,
+    30,
+    730
+);
 $maxHorasPorEjecucion = configEntera(
     $configLocal,
     'retention_hours_per_run',
@@ -139,12 +153,43 @@ $resumenesEliminados = $pdo->exec(
      WHERE periodo_hora < UTC_TIMESTAMP() - INTERVAL {$retencionResumenMeses} MONTH"
 );
 
+$pushEliminadas = 0;
+$eventosShellyEliminados = 0;
+$entregasWebhookEliminadas = 0;
+try {
+    $pushEliminadas = (int) $pdo->exec(
+        "DELETE FROM notificaciones_push
+         WHERE estado IN ('ENVIADA', 'DESCARTADA')
+           AND creado_en < UTC_TIMESTAMP() - INTERVAL {$retencionPushDias} DAY"
+    );
+    $eventosShellyEliminados = (int) $pdo->exec(
+        "DELETE FROM eventos_shelly
+         WHERE fecha_hora < UTC_TIMESTAMP() - INTERVAL {$retencionEventosShellyDias} DAY"
+    );
+    try {
+        $entregasWebhookEliminadas = (int) $pdo->exec(
+            "DELETE FROM entregas_webhook_shelly
+             WHERE recibido_en < UTC_TIMESTAMP() - INTERVAL {$retencionEventosShellyDias} DAY"
+        );
+    } catch (Throwable $errorAuditoriaWebhook) {
+        // La migracion de webhooks puede instalarse despues del cron.
+        error_log('ID Industrial retencion webhooks: ' . $errorAuditoriaWebhook->getMessage());
+    }
+} catch (Throwable $errorLimpiezaOperativa) {
+    error_log('ID Industrial retencion operativa: ' . $errorLimpiezaOperativa->getMessage());
+}
+
 echo json_encode([
     'ok' => true,
     'retencion_muestras_dias' => $retencionDias,
     'retencion_resumen_meses' => $retencionResumenMeses,
+    'retencion_eventos_shelly_dias' => $retencionEventosShellyDias,
+    'retencion_push_dias' => $retencionPushDias,
     'horas_procesadas' => $horasProcesadas,
     'muestras_resumidas_y_eliminadas' => $muestrasEliminadas,
     'resumenes_vencidos_eliminados' => (int) $resumenesEliminados,
+    'eventos_shelly_eliminados' => $eventosShellyEliminados,
+    'entregas_webhook_eliminadas' => $entregasWebhookEliminadas,
+    'notificaciones_push_eliminadas' => $pushEliminadas,
     'duracion_segundos' => round(microtime(true) - $inicio, 3),
 ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . PHP_EOL;

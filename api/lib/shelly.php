@@ -2,6 +2,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/alexa_events.php';
+require_once __DIR__ . '/shelly_notificaciones.php';
 
 final class IdindShellyException extends RuntimeException
 {
@@ -235,7 +236,7 @@ function idindShellyGuardarEstado(
     ?string $error = null,
     ?array $config = null,
     ?string $causaAlexa = null
-): void {
+): array {
     $online = !empty($estado['online']) ? 1 : 0;
     $salida = $estado['salida_encendida'] ?? null;
     $salidaDb = $salida === null ? null : ($salida ? 1 : 0);
@@ -256,11 +257,11 @@ function idindShellyGuardarEstado(
         'INSERT INTO estado_shelly (
             actuador_id, online, salida_encendida, potencia_w, voltaje_v,
             corriente_a, temperatura_c, errores_json, fuente, ultimo_error,
-            sincronizado_en
+            sincronizado_en, apagado_programado_en
          ) VALUES (
             :actuador_id, :online, :salida, :potencia, :voltaje,
             :corriente, :temperatura, :errores, :fuente, :ultimo_error,
-            UTC_TIMESTAMP()
+            UTC_TIMESTAMP(), NULL
          )
          ON DUPLICATE KEY UPDATE
             online = VALUES(online), salida_encendida = VALUES(salida_encendida),
@@ -269,7 +270,11 @@ function idindShellyGuardarEstado(
             corriente_a = COALESCE(VALUES(corriente_a), corriente_a),
             temperatura_c = COALESCE(VALUES(temperatura_c), temperatura_c),
             errores_json = VALUES(errores_json), fuente = VALUES(fuente),
-            ultimo_error = VALUES(ultimo_error), sincronizado_en = UTC_TIMESTAMP()'
+            ultimo_error = VALUES(ultimo_error), sincronizado_en = UTC_TIMESTAMP(),
+            apagado_programado_en = CASE
+                WHEN VALUES(salida_encendida) = 0 THEN NULL
+                ELSE apagado_programado_en
+            END'
     );
     $stmt->execute([
         'actuador_id' => (string) $actuador['id'],
@@ -296,14 +301,16 @@ function idindShellyGuardarEstado(
         'id' => (string) $actuador['id'],
     ]);
 
+    $alexa = ['enviados' => 0, 'errores' => []];
+    $cambioSalida = $salidaDb !== null
+        && $teniaSalidaAnterior
+        && $salidaAnterior !== $salidaDb;
     if (
         $config !== null
         && $causaAlexa !== null
-        && $salidaDb !== null
-        && $teniaSalidaAnterior
-        && $salidaAnterior !== $salidaDb
+        && $cambioSalida
     ) {
-        idindAlexaNotificarCambioShelly(
+        $alexa = idindAlexaNotificarCambioShelly(
             $pdo,
             $config,
             (string) $actuador['id'],
@@ -312,6 +319,32 @@ function idindShellyGuardarEstado(
             $causaAlexa
         );
     }
+    return [
+        'cambio_salida' => $cambioSalida,
+        'salida_anterior' => $teniaSalidaAnterior ? $salidaAnterior : null,
+        'salida_actual' => $salidaDb,
+        'alexa' => $alexa,
+    ];
+}
+
+function idindShellyEsConfirmacionComandoReciente(
+    PDO $pdo,
+    string $actuadorId,
+    bool $encendida
+): bool {
+    $stmt = $pdo->prepare(
+        "SELECT id FROM comandos_shelly
+         WHERE actuador_id = :actuador_id
+           AND accion = :accion
+           AND creado_en >= UTC_TIMESTAMP() - INTERVAL 15 SECOND
+           AND estado IN ('PENDIENTE', 'PROCESANDO', 'APLICADO', 'REINTENTAR')
+         ORDER BY id DESC LIMIT 1"
+    );
+    $stmt->execute([
+        'actuador_id' => $actuadorId,
+        'accion' => $encendida ? 'ENCENDER' : 'APAGAR',
+    ]);
+    return $stmt->fetchColumn() !== false;
 }
 
 function idindShellyGuardarError(PDO $pdo, array $actuador, string $mensaje): void
@@ -450,6 +483,8 @@ function idindShellySincronizar(
                                 'canal' => (int) $actuador['canal'],
                             ]),
                         ]);
+                        $eventoId = (int) $pdo->lastInsertId();
+                        idindShellyEncolarNotificacionEvento($pdo, $eventoId, $config);
                     }
                     $estadosPrevios[$idActuador] = $salidaActual === null
                         ? null
@@ -671,6 +706,25 @@ function idindShellyProcesarComando(PDO $pdo, array $config, int $comandoId): ar
                     ? 'PERIODIC_POLL'
                     : 'APP_INTERACTION')
         );
+        $apagadoProgramado = null;
+        if (
+            $encender
+            && !empty($comando['apagado_automatico'])
+            && (int) ($comando['tiempo_max_encendido_s'] ?? 0) > 0
+        ) {
+            $apagadoProgramado = gmdate(
+                'Y-m-d H:i:s',
+                time() + (int) $comando['tiempo_max_encendido_s']
+            );
+        }
+        $pdo->prepare(
+            'UPDATE estado_shelly
+             SET apagado_programado_en = :apagado_programado_en
+             WHERE actuador_id = :actuador_id'
+        )->execute([
+            'apagado_programado_en' => $apagadoProgramado,
+            'actuador_id' => (string) $comando['actuador_id'],
+        ]);
         $pdo->prepare(
             "UPDATE comandos_shelly SET estado = 'APLICADO', respuesta_json = :respuesta,
              ultimo_error = NULL, procesado_en = UTC_TIMESTAMP() WHERE id = :id"
@@ -800,11 +854,13 @@ function idindShellyEstadoCliente(PDO $pdo, int $clienteId): array
             a.canal, a.funcion, a.categoria, a.tipo_carga,
             a.corriente_max_a, a.potencia_max_w, a.tiempo_max_encendido_s,
             a.apagado_automatico, a.permite_rutinas, a.requiere_confirmacion,
+            a.notificar_cambios_externos,
             a.descripcion, a.modo_control, a.estado,
             a.ultima_conexion,
             es.online, es.salida_encendida, es.potencia_w, es.voltaje_v,
             es.corriente_a, es.temperatura_c, es.errores_json,
             es.fuente, es.ultimo_error, es.sincronizado_en,
+            es.apagado_programado_en,
             CASE
               WHEN es.sincronizado_en IS NULL THEN 'SIN_DATOS'
               WHEN es.sincronizado_en < UTC_TIMESTAMP() - INTERVAL 3 MINUTE
@@ -827,7 +883,7 @@ function idindShellyEstadoCliente(PDO $pdo, int $clienteId): array
         $fila['salida_encendida'] = $fila['salida_encendida'] === null
             ? null
             : (int) $fila['salida_encendida'];
-        foreach (['apagado_automatico', 'permite_rutinas', 'requiere_confirmacion'] as $campo) {
+        foreach (['apagado_automatico', 'permite_rutinas', 'requiere_confirmacion', 'notificar_cambios_externos'] as $campo) {
             $fila[$campo] = (int) ($fila[$campo] ?? 0);
         }
     }

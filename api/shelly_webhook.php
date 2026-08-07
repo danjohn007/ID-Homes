@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/lib/shelly.php';
+require_once __DIR__ . '/lib/shelly_webhooks.php';
 
 $metodo = strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET'));
 if (!in_array($metodo, ['GET', 'POST'], true)) {
@@ -42,6 +43,10 @@ if (!in_array($salidaTexto, ['0', '1', 'false', 'true', 'off', 'on'], true)) {
 }
 $encendida = in_array($salidaTexto, ['1', 'true', 'on'], true);
 
+// Nunca conservar secretos recibidos por query string dentro de la auditoria.
+$detalleSeguro = $entrada;
+unset($detalleSeguro['token']);
+
 $stmt = $pdo->prepare(
     'SELECT id FROM actuadores_shelly
      WHERE LOWER(shelly_device_id) = :device_id AND canal = :canal'
@@ -52,7 +57,26 @@ if ($actuadores === []) {
     responderJson(404, ['ok' => false, 'error' => 'Canal Shelly no registrado']);
 }
 
+$eventos = 0;
+$notificaciones = 0;
+$alexaEnviados = 0;
+$alexaErrores = [];
+$entregas = [];
+$erroresProceso = [];
+$auditoriaDisponible = idindWebhookAuditoriaDisponible($pdo);
 foreach ($actuadores as $actuador) {
+    $actuadorId = (string) $actuador['id'];
+    $entregaId = idindWebhookCrearEntrega(
+        $pdo,
+        $actuadorId,
+        $encendida,
+        $metodo,
+        $detalleSeguro
+    );
+    if ($entregaId !== null) {
+        $entregas[] = $entregaId;
+    }
+    try {
     $estado = [
         'online' => true,
         'salida_encendida' => $encendida,
@@ -62,7 +86,7 @@ foreach ($actuadores as $actuador) {
         'temperatura_c' => idindShellyNumero($entrada['temperature'] ?? null),
         'errores' => [],
     ];
-    idindShellyGuardarEstado(
+    $resultadoEstado = idindShellyGuardarEstado(
         $pdo,
         $actuador,
         $estado,
@@ -71,16 +95,74 @@ foreach ($actuadores as $actuador) {
         $configLocal,
         'PHYSICAL_INTERACTION'
     );
+    $alexaEnviados += (int) ($resultadoEstado['alexa']['enviados'] ?? 0);
+    $alexaErrores = array_merge(
+        $alexaErrores,
+        is_array($resultadoEstado['alexa']['errores'] ?? null)
+            ? $resultadoEstado['alexa']['errores']
+            : []
+    );
+    $esCambioExterno = !empty($resultadoEstado['cambio_salida'])
+        && !idindShellyEsConfirmacionComandoReciente(
+            $pdo,
+            $actuadorId,
+            $encendida
+        );
+    idindWebhookCerrarEntrega(
+        $pdo,
+        $entregaId,
+        'PROCESADA',
+        !empty($resultadoEstado['cambio_salida']),
+        $esCambioExterno,
+        (int) ($resultadoEstado['alexa']['enviados'] ?? 0),
+        is_array($resultadoEstado['alexa']['errores'] ?? null)
+            ? $resultadoEstado['alexa']['errores']
+            : []
+    );
+    if (!$esCambioExterno) {
+        continue;
+    }
     $pdo->prepare(
         "INSERT INTO eventos_shelly (
             actuador_id, evento, origen, salida_encendida, detalle_json
          ) VALUES (:actuador, :evento, 'WEBHOOK', :salida, :detalle)"
     )->execute([
-        'actuador' => (string) $actuador['id'],
+        'actuador' => $actuadorId,
         'evento' => $encendida ? 'WEBHOOK_ENCENDIDO' : 'WEBHOOK_APAGADO',
         'salida' => $encendida ? 1 : 0,
-        'detalle' => idindShellyJsonSeguro($entrada),
+        'detalle' => idindShellyJsonSeguro($detalleSeguro),
     ]);
+    $eventoId = (int) $pdo->lastInsertId();
+    $eventos++;
+    $resultadoPush = idindShellyEncolarNotificacionEvento($pdo, $eventoId, $configLocal);
+    $notificaciones += (int) ($resultadoPush['encoladas'] ?? 0);
+    } catch (Throwable $error) {
+        $mensaje = substr($error->getMessage(), 0, 500);
+        $erroresProceso[] = $actuadorId . ': ' . $mensaje;
+        idindWebhookCerrarEntrega(
+            $pdo,
+            $entregaId,
+            'ERROR',
+            false,
+            false,
+            0,
+            [],
+            $mensaje
+        );
+        error_log('ID Industrial webhook Shelly ' . $actuadorId . ': ' . $mensaje);
+    }
 }
 
-responderJson(200, ['ok' => true, 'data' => ['actualizados' => count($actuadores)]]);
+responderJson($erroresProceso === [] ? 200 : 500, [
+    'ok' => $erroresProceso === [],
+    'data' => [
+        'actualizados' => count($actuadores),
+        'entregas_registradas' => $entregas,
+        'auditoria_disponible' => $auditoriaDisponible,
+        'cambios_externos' => $eventos,
+        'notificaciones' => $notificaciones,
+        'alexa_enviados' => $alexaEnviados,
+        'alexa_errores' => $alexaErrores,
+        'errores_proceso' => $erroresProceso,
+    ],
+]);

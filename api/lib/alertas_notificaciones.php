@@ -60,7 +60,7 @@ function idindEncolarNotificacionesAlertas(
 
         if ($esDesconexion) {
             $titulo = 'Dispositivo sin conexion';
-            $cuerpo = "{$dispositivo} dejo de reportar en {$ubicacion}. Revisa energia, Wi-Fi o internet.";
+            $cuerpo = "{$dispositivo} perdio conexion en {$ubicacion}. Revisa energia, Wi-Fi o internet.";
             $categoria = 'CONECTIVIDAD';
         } else {
             $titulo = 'Alerta critica: ' . $tipo;
@@ -93,6 +93,7 @@ function idindEncolarNotificacionesAlertas(
                         'dispositivoId' => $dispositivo,
                         'tipo' => 'ALERTA',
                         'categoria' => $categoria,
+                        'evento' => $esDesconexion ? 'ESP32_OFFLINE' : 'SENSOR_CRITICO',
                         'url' => '/alerta/' . (int) $alerta['id'],
                     ],
                     JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES

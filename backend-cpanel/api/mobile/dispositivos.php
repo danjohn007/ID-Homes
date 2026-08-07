@@ -7,10 +7,11 @@ requerirMetodo('GET');
 
 $usuario = requerirTokenMovil();
 $clienteId = (int) $usuario['cliente_id'];
+$incluirShelly = ($_GET['incluir_shelly'] ?? '') === '1';
 
-if (($_GET['sincronizar_shelly'] ?? '') === '1' && idindShellyConfigurado($configLocal)) {
+if ($incluirShelly && ($_GET['sincronizar_shelly'] ?? '') === '1' && idindShellyConfigurado($configLocal)) {
     $lockName = 'idind_shelly_mobile_' . $clienteId;
-    $stmtLock = $pdo->prepare('SELECT GET_LOCK(:nombre, 1)');
+    $stmtLock = $pdo->prepare('SELECT GET_LOCK(:nombre, 0)');
     $stmtLock->execute(['nombre' => $lockName]);
     $lockTomado = (int) $stmtLock->fetchColumn() === 1;
 
@@ -119,10 +120,12 @@ $stmt = $pdo->prepare(
 $stmt->execute(['cliente_id' => $clienteId]);
 
 $actuadoresShelly = [];
-try {
-    $actuadoresShelly = idindShellyEstadoCliente($pdo, $clienteId);
-} catch (Throwable $errorShelly) {
-    error_log('ID Industrial estado Shelly movil: ' . $errorShelly->getMessage());
+if ($incluirShelly) {
+    try {
+        $actuadoresShelly = idindShellyEstadoCliente($pdo, $clienteId);
+    } catch (Throwable $errorShelly) {
+        error_log('ID Industrial estado Shelly movil: ' . $errorShelly->getMessage());
+    }
 }
 
 responderJson(200, [

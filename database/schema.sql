@@ -51,6 +51,7 @@ CREATE TABLE IF NOT EXISTS actuadores_shelly (
   apagado_automatico TINYINT(1) NOT NULL DEFAULT 0,
   permite_rutinas TINYINT(1) NOT NULL DEFAULT 0,
   requiere_confirmacion TINYINT(1) NOT NULL DEFAULT 1,
+  notificar_cambios_externos TINYINT(1) NOT NULL DEFAULT 1,
   descripcion VARCHAR(255) NULL,
   modo_control ENUM('LOCAL', 'CLOUD', 'HIBRIDO') NOT NULL DEFAULT 'HIBRIDO',
   estado ENUM('Activo', 'Mantenimiento', 'Inactivo') NOT NULL DEFAULT 'Activo',
@@ -80,10 +81,12 @@ CREATE TABLE IF NOT EXISTS estado_shelly (
   fuente ENUM('CLOUD', 'WEBHOOK', 'LOCAL') NOT NULL DEFAULT 'CLOUD',
   ultimo_error VARCHAR(500) NULL,
   sincronizado_en DATETIME NULL,
+  apagado_programado_en DATETIME NULL,
   actualizado_en TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
     ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (actuador_id),
-  INDEX idx_estado_shelly_online (online, sincronizado_en)
+  INDEX idx_estado_shelly_online (online, sincronizado_en),
+  INDEX idx_estado_shelly_apagado (apagado_programado_en)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS comandos_shelly (
@@ -122,6 +125,27 @@ CREATE TABLE IF NOT EXISTS eventos_shelly (
   PRIMARY KEY (id),
   INDEX idx_eventos_shelly_actuador_fecha (actuador_id, fecha_hora, id),
   INDEX idx_eventos_shelly_comando (comando_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS entregas_webhook_shelly (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  actuador_id VARCHAR(64) NOT NULL,
+  evento ENUM('ENCENDIDO', 'APAGADO') NOT NULL,
+  salida_encendida TINYINT(1) NOT NULL,
+  metodo ENUM('GET', 'POST') NOT NULL,
+  estado ENUM('RECIBIDA', 'PROCESADA', 'ERROR') NOT NULL DEFAULT 'RECIBIDA',
+  cambio_estado TINYINT(1) NOT NULL DEFAULT 0,
+  cambio_externo TINYINT(1) NOT NULL DEFAULT 0,
+  alexa_enviados SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+  alexa_errores_json TEXT NULL,
+  detalle_json TEXT NULL,
+  ultimo_error VARCHAR(500) NULL,
+  recibido_en TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  procesado_en DATETIME NULL,
+  PRIMARY KEY (id),
+  INDEX idx_webhook_actuador_fecha (actuador_id, recibido_en, id),
+  INDEX idx_webhook_estado_fecha (estado, recibido_en),
+  INDEX idx_webhook_evento_fecha (evento, recibido_en)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS integraciones_domoticas (
@@ -304,7 +328,10 @@ CREATE TABLE IF NOT EXISTS moviles_push (
 
 CREATE TABLE IF NOT EXISTS notificaciones_push (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-  alerta_id BIGINT UNSIGNED NOT NULL,
+  alerta_id BIGINT UNSIGNED NULL,
+  origen_tipo ENUM('ALERTA', 'SHELLY') NOT NULL DEFAULT 'ALERTA',
+  evento_shelly_id BIGINT UNSIGNED NULL,
+  dedupe_key CHAR(64) NULL,
   push_token_id BIGINT UNSIGNED NOT NULL,
   cliente_id INT UNSIGNED NOT NULL,
   titulo VARCHAR(120) NOT NULL,
@@ -323,7 +350,9 @@ CREATE TABLE IF NOT EXISTS notificaciones_push (
     ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
   UNIQUE KEY uq_notificacion_alerta_token (alerta_id, push_token_id),
+  UNIQUE KEY uq_notificacion_dedupe_token (dedupe_key, push_token_id),
   INDEX idx_notificaciones_estado_disponible (estado, disponible_en, id),
+  INDEX idx_notificaciones_origen (origen_tipo, evento_shelly_id),
   INDEX idx_notificaciones_cliente (cliente_id, creado_en),
   INDEX idx_notificaciones_ticket (ticket_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

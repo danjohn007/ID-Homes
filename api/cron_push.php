@@ -79,8 +79,9 @@ try {
     $pdo->beginTransaction();
     $stmtPendientes = $pdo->prepare(
         "SELECT
-            np.id, np.alerta_id, np.push_token_id, np.titulo, np.cuerpo,
-            np.payload_json, np.intentos, mp.expo_push_token
+            np.id, np.alerta_id, np.origen_tipo, np.evento_shelly_id,
+            np.push_token_id, np.titulo, np.cuerpo, np.payload_json,
+            np.intentos, mp.expo_push_token
          FROM notificaciones_push np
          INNER JOIN moviles_push mp ON mp.id = np.push_token_id
          WHERE np.estado IN ('PENDIENTE', 'REINTENTAR')
@@ -127,11 +128,20 @@ try {
             if (!is_array($data)) {
                 $data = [];
             }
-            $alertaId = (int) $fila['alerta_id'];
-            $data['alertaId'] = $alertaId;
-            $data['alerta_id'] = $alertaId;
-            $data['tipo'] = 'ALERTA';
-            $data['url'] = '/alerta/' . $alertaId;
+            $origenTipo = strtoupper((string) ($fila['origen_tipo'] ?? 'ALERTA'));
+            $alertaId = (int) ($fila['alerta_id'] ?? 0);
+            if ($origenTipo === 'ALERTA' && $alertaId > 0) {
+                $data['alertaId'] = $alertaId;
+                $data['alerta_id'] = $alertaId;
+                $data['tipo'] = 'ALERTA';
+                $data['url'] = '/alerta/' . $alertaId;
+            } else {
+                $data['tipo'] = $data['tipo'] ?? $origenTipo;
+                $eventoShellyId = (int) ($fila['evento_shelly_id'] ?? 0);
+                if ($eventoShellyId > 0) {
+                    $data['evento_shelly_id'] = $eventoShellyId;
+                }
+            }
             return [
                 'to' => (string) $fila['expo_push_token'],
                 'sound' => 'default',
