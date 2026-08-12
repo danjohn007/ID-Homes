@@ -11,6 +11,10 @@ return [
     'shelly_cloud_server' => '',
     'shelly_cloud_auth_key' => '',
     'shelly_webhook_token' => 'GENERA_UN_TOKEN_ALEATORIO_DE_32_CARACTERES_O_MAS',
+    // Token compartido exclusivamente con el conector Hikvision de la red local.
+    'hikvision_bridge_token' => 'GENERA_UN_TOKEN_ALEATORIO_DE_48_CARACTERES_O_MAS',
+    // Token compartido exclusivamente con el conector ZKTeco de la red local.
+    'zkteco_bridge_token' => 'GENERA_OTRO_TOKEN_ALEATORIO_DE_48_CARACTERES_O_MAS',
     // Alexa Smart Home. Estos valores permanecen solamente en cPanel.
     'alexa_public_base_url' => 'https://TU_DOMINIO/ID-Industrial/api',
     'alexa_oauth_client_id' => 'idindustrial-alexa',

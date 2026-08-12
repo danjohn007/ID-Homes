@@ -129,6 +129,10 @@ export default function RootLayout() {
           <Stack.Screen name="alerta/[id]" />
           <Stack.Screen name="shelly/[id]" />
           <Stack.Screen name="shelly/formulario" />
+          <Stack.Screen name="hikvision/[id]" />
+          <Stack.Screen name="hikvision/formulario" />
+          <Stack.Screen name="zkteco/[id]" />
+          <Stack.Screen name="zkteco/formulario" />
           <Stack.Screen name="rutina/formulario" />
         </Stack>
       </AuthProvider>

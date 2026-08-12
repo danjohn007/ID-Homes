@@ -98,6 +98,123 @@ export type MobileShellyActuator = {
   ultimo_error: string | null;
 };
 
+export type MobileHikvisionDevice = {
+  tipo: 'HIKVISION';
+  id: string;
+  nombre: string;
+  ubicacion: string;
+  categoria: 'CAMARA' | 'NVR_DVR' | 'CONTROL_ACCESO' | 'INTERCOM' | 'OTRO';
+  modelo: string | null;
+  numero_serie: string | null;
+  ip_local: string;
+  puerto: number | string;
+  protocolo: 'HTTP' | 'HTTPS';
+  estado: 'Activo' | 'Mantenimiento' | 'Inactivo';
+  conexion: 'ONLINE' | 'OFFLINE' | 'SIN_DATOS' | 'DESACTUALIZADO';
+  online: number | string;
+  nombre_detectado: string | null;
+  modelo_detectado: string | null;
+  serial_detectado: string | null;
+  firmware: string | null;
+  mac: string | null;
+  uptime_s: number | string | null;
+  fuente: string | null;
+  ultimo_error: string | null;
+  sincronizado_en: string | null;
+};
+
+export type MobileHikvisionEvent = {
+  id: number | string;
+  tipo_evento: string;
+  severidad: 'INFO' | 'PRECAUCION' | 'CRITICO';
+  codigo: string | null;
+  descripcion: string | null;
+  detalle: Record<string, unknown>;
+  ocurrido_en: string | null;
+  recibido_en: string;
+};
+
+export type MobileHikvisionDetail = {
+  equipo: MobileHikvisionDevice;
+  eventos: MobileHikvisionEvent[];
+  permisos: { administrar: boolean };
+};
+
+export type MobileHikvisionSaveInput = {
+  accion: 'CREAR' | 'ACTUALIZAR';
+  id: string;
+  nombre: string;
+  ubicacion: string;
+  categoria: MobileHikvisionDevice['categoria'];
+  modelo: string;
+  numero_serie: string;
+  ip_local: string;
+  puerto: number;
+  protocolo: MobileHikvisionDevice['protocolo'];
+  estado: MobileHikvisionDevice['estado'];
+};
+
+export type MobileZktecoDevice = {
+  tipo: 'ZKTECO';
+  id: string;
+  nombre: string;
+  ubicacion: string;
+  categoria: 'ASISTENCIA' | 'CONTROL_ACCESO' | 'HIBRIDO' | 'OTRO';
+  modelo: string | null;
+  numero_serie: string | null;
+  ip_local: string | null;
+  puerto: number | string;
+  protocolo: 'PULL_4370' | 'PUSH_ADMS' | 'WDMS_API';
+  numero_maquina: number | string;
+  estado: 'Activo' | 'Mantenimiento' | 'Inactivo';
+  conexion: 'ONLINE' | 'OFFLINE' | 'SIN_DATOS' | 'DESACTUALIZADO';
+  online: number | string;
+  nombre_detectado: string | null;
+  modelo_detectado: string | null;
+  serial_detectado: string | null;
+  firmware: string | null;
+  plataforma: string | null;
+  usuarios_total: number | string | null;
+  registros_total: number | string | null;
+  capacidad_usuarios: number | string | null;
+  capacidad_registros: number | string | null;
+  fuente: string | null;
+  ultimo_error: string | null;
+  sincronizado_en: string | null;
+};
+
+export type MobileZktecoEvent = {
+  id: number | string;
+  pin_usuario: string | null;
+  tipo_evento: string;
+  modo_verificacion: string | null;
+  estado_entrada: string | null;
+  detalle: Record<string, unknown>;
+  ocurrido_en: string | null;
+  recibido_en: string;
+};
+
+export type MobileZktecoDetail = {
+  equipo: MobileZktecoDevice;
+  eventos: MobileZktecoEvent[];
+  permisos: { administrar: boolean };
+};
+
+export type MobileZktecoSaveInput = {
+  accion: 'CREAR' | 'ACTUALIZAR';
+  id: string;
+  nombre: string;
+  ubicacion: string;
+  categoria: MobileZktecoDevice['categoria'];
+  modelo: string;
+  numero_serie: string;
+  ip_local: string;
+  puerto: number;
+  protocolo: MobileZktecoDevice['protocolo'];
+  numero_maquina: number;
+  estado: MobileZktecoDevice['estado'];
+};
+
 export type MobileShellyEvent = {
   id: number | string;
   evento: string;
@@ -311,6 +428,10 @@ export type MobileDevicesResponse = {
   generado_en: string;
   dispositivos: MobileDevice[];
   actuadores_shelly: MobileShellyActuator[];
+  equipos_hikvision: MobileHikvisionDevice[];
+  equipos_zkteco: MobileZktecoDevice[];
+  hikvision_disponible: boolean;
+  zkteco_disponible: boolean;
 };
 
 export type MobileShellyCommand = {

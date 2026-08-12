@@ -3,11 +3,15 @@ declare(strict_types=1);
 
 require_once dirname(__DIR__) . '/mobile_auth.php';
 require_once dirname(__DIR__) . '/lib/shelly.php';
+require_once dirname(__DIR__) . '/lib/hikvision.php';
+require_once dirname(__DIR__) . '/lib/zkteco.php';
 requerirMetodo('GET');
 
 $usuario = requerirTokenMovil();
 $clienteId = (int) $usuario['cliente_id'];
 $incluirShelly = ($_GET['incluir_shelly'] ?? '') === '1';
+$incluirHikvision = ($_GET['incluir_hikvision'] ?? '') === '1';
+$incluirZkteco = ($_GET['incluir_zkteco'] ?? '') === '1';
 
 if ($incluirShelly && ($_GET['sincronizar_shelly'] ?? '') === '1' && idindShellyConfigurado($configLocal)) {
     $lockName = 'idind_shelly_mobile_' . $clienteId;
@@ -128,11 +132,25 @@ if ($incluirShelly) {
     }
 }
 
+$equiposHikvision = [];
+if ($incluirHikvision && idindHikvisionDisponible($pdo)) {
+    $equiposHikvision = idindHikvisionCliente($pdo, $clienteId);
+}
+
+$equiposZkteco = [];
+if ($incluirZkteco && idindZktecoDisponible($pdo)) {
+    $equiposZkteco = idindZktecoCliente($pdo, $clienteId);
+}
+
 responderJson(200, [
     'ok' => true,
     'data' => [
         'generado_en' => gmdate('Y-m-d H:i:s'),
         'dispositivos' => $stmt->fetchAll(),
         'actuadores_shelly' => $actuadoresShelly,
+        'equipos_hikvision' => $equiposHikvision,
+        'equipos_zkteco' => $equiposZkteco,
+        'hikvision_disponible' => idindHikvisionDisponible($pdo),
+        'zkteco_disponible' => idindZktecoDisponible($pdo),
     ],
 ]);

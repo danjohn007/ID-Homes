@@ -49,6 +49,8 @@ a { color: inherit; text-decoration: none; }
 .device-type-badge { display: inline-flex; align-items: center; width: fit-content; border: 1px solid var(--border); border-radius: 4px; padding: 4px 8px; font-size: .72rem; font-weight: 800; }
 .device-type-badge.esp32 { border-color: rgba(0, 163, 255, .65); color: var(--blue); }
 .device-type-badge.shelly { border-color: rgba(255, 176, 0, .75); color: var(--yellow); }
+.device-type-badge.hikvision { border-color: rgba(53, 208, 127, .65); color: var(--green); }
+.device-type-badge.zkteco { border-color: rgba(255, 176, 0, .75); color: var(--yellow); }
 .shelly-connection { font-size: .78rem; }
 .shelly-connection.online { color: var(--green); }
 .shelly-connection.offline { color: var(--muted); }

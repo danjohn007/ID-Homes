@@ -41,6 +41,23 @@ const elements = {
   shellyFunction: document.querySelector('#shellyFunction'),
   shellyControlMode: document.querySelector('#shellyControlMode'),
   shellyLinkedDevice: document.querySelector('#shellyLinkedDevice'),
+  hikvisionFields: document.querySelector('#hikvisionFields'),
+  hikvisionName: document.querySelector('#hikvisionName'),
+  hikvisionCategory: document.querySelector('#hikvisionCategory'),
+  hikvisionModel: document.querySelector('#hikvisionModel'),
+  hikvisionSerial: document.querySelector('#hikvisionSerial'),
+  hikvisionLocalIp: document.querySelector('#hikvisionLocalIp'),
+  hikvisionPort: document.querySelector('#hikvisionPort'),
+  hikvisionProtocol: document.querySelector('#hikvisionProtocol'),
+  zktecoFields: document.querySelector('#zktecoFields'),
+  zktecoName: document.querySelector('#zktecoName'),
+  zktecoCategory: document.querySelector('#zktecoCategory'),
+  zktecoModel: document.querySelector('#zktecoModel'),
+  zktecoSerial: document.querySelector('#zktecoSerial'),
+  zktecoLocalIp: document.querySelector('#zktecoLocalIp'),
+  zktecoPort: document.querySelector('#zktecoPort'),
+  zktecoProtocol: document.querySelector('#zktecoProtocol'),
+  zktecoMachineNumber: document.querySelector('#zktecoMachineNumber'),
   dialogMessage: document.querySelector('#dialogMessage'),
   submit: document.querySelector('#dialogSubmit'),
   cancel: document.querySelector('#dialogCancel'),
@@ -108,9 +125,20 @@ function renderDevices() {
   const active = state.devices.filter((device) => device.estado === 'Activo').length;
   const esp32Count = state.devices.filter((device) => device.tipo === 'ESP32').length;
   const shellyCount = state.devices.filter((device) => device.tipo === 'SHELLY').length;
+  const hikvisionCount = state.devices.filter((device) => device.tipo === 'HIKVISION').length;
+  const zktecoCount = state.devices.filter((device) => device.tipo === 'ZKTECO').length;
   elements.summary.textContent =
     state.devices.length + ' registrados · ' + esp32Count + ' ESP32 · ' + shellyCount +
-    ' Shelly · ' + active + ' activos';
+    ' Shelly · ' + hikvisionCount + ' Hikvision · ' + active + ' activos';
+
+  elements.summary.textContent = [
+    state.devices.length + ' registrados',
+    esp32Count + ' ESP32',
+    shellyCount + ' Shelly',
+    hikvisionCount + ' Hikvision',
+    zktecoCount + ' ZKTeco',
+    active + ' activos'
+  ].join(' / ');
 
   if (!state.devices.length) {
     elements.table.innerHTML =
@@ -129,9 +157,16 @@ function renderDevices() {
     const toggleLabel = device.estado === 'Activo' ? 'Desactivar' : 'Activar';
     const toggleClass = device.estado === 'Activo' ? 'button-danger' : 'button-secondary';
     const isShelly = device.tipo === 'SHELLY';
+    const isHikvision = device.tipo === 'HIKVISION';
+    const isZkteco = device.tipo === 'ZKTECO';
     const detail = isShelly
       ? [device.modelo, device.funcion, 'Canal ' + device.canal].filter(Boolean).join(' · ')
-      : 'DISPOSITIVO_ID';
+      : isHikvision
+        ? [device.nombre, device.categoria, device.modelo].filter(Boolean).join(' · ')
+        : 'DISPOSITIVO_ID';
+    const deviceDetail = isZkteco
+      ? [device.nombre, device.categoria, device.modelo, device.protocolo].filter(Boolean).join(' / ')
+      : detail;
     const shellyOnline = isShelly && device.conexion === 'ONLINE';
     const shellyOutput = Number(device.salida_encendida) === 1;
     const connection = isShelly
@@ -140,7 +175,21 @@ function renderDevices() {
         '</strong><small>' + escapeHtml(dateLabel(device.sincronizado_en)) + '</small>' +
         (device.ultimo_error ? '<small class="shelly-row-error">' + escapeHtml(device.ultimo_error) + '</small>' : '') +
         '</div>'
-      : escapeHtml(dateLabel(device.ultima_conexion));
+      : isHikvision
+        ? '<div class="user-cell"><strong class="shelly-connection ' + (device.conexion === 'ONLINE' ? 'online' : 'offline') + '">' +
+            escapeHtml((device.conexion || 'SIN_DATOS').replace('_', ' ')) +
+          '</strong><small>' + escapeHtml(dateLabel(device.sincronizado_en)) + '</small>' +
+          (device.ultimo_error ? '<small class="shelly-row-error">' + escapeHtml(device.ultimo_error) + '</small>' : '') +
+          '</div>'
+        : escapeHtml(dateLabel(device.ultima_conexion));
+    const deviceConnection = isZkteco
+      ? '<div class="user-cell"><strong class="shelly-connection ' + (device.conexion === 'ONLINE' ? 'online' : 'offline') + '">' +
+          escapeHtml((device.conexion || 'SIN_DATOS').replace('_', ' ')) +
+        '</strong><small>' + escapeHtml(dateLabel(device.sincronizado_en)) + '</small>' +
+        (device.ultimo_error ? '<small class="shelly-row-error">' + escapeHtml(device.ultimo_error) + '</small>' : '') +
+        '</div>'
+      : connection;
+    const typeClass = isShelly ? 'shelly' : isHikvision ? 'hikvision' : isZkteco ? 'zkteco' : 'esp32';
     const shellyActions = isShelly
       ? '<button class="button button-secondary button-small" type="button" data-action="test" data-id="' + escapeHtml(device.id) + '">Probar</button>' +
         '<button class="button button-secondary button-small" type="button" data-action="webhooks" data-id="' + escapeHtml(device.id) + '">Webhooks</button>' +
@@ -149,11 +198,11 @@ function renderDevices() {
 
     return (
       '<tr>' +
-        '<td><div class="user-cell"><strong>' + escapeHtml(device.id) + '</strong><small>' + escapeHtml(detail) + '</small></div></td>' +
-        '<td><span class="device-type-badge ' + (isShelly ? 'shelly' : 'esp32') + '">' + escapeHtml(device.tipo) + '</span></td>' +
+        '<td><div class="user-cell"><strong>' + escapeHtml(device.id) + '</strong><small>' + escapeHtml(deviceDetail) + '</small></div></td>' +
+        '<td><span class="device-type-badge ' + typeClass + '">' + escapeHtml(device.tipo) + '</span></td>' +
         '<td>' + escapeHtml(device.ubicacion) + '</td>' +
         '<td><span class="status-badge ' + statusClass + '">' + escapeHtml(device.estado) + '</span></td>' +
-        '<td>' + connection + '</td>' +
+        '<td>' + deviceConnection + '</td>' +
         '<td><div class="action-row">' +
           shellyActions +
           '<button class="button button-secondary button-small" type="button" data-action="edit" data-id="' + escapeHtml(device.id) + '">Editar</button>' +
@@ -360,13 +409,23 @@ function populateLinkedDevices(selectedId = '') {
 
 function updateDeviceType(type) {
   const isShelly = type === 'SHELLY';
+  const isHikvision = type === 'HIKVISION';
+  const isZkteco = type === 'ZKTECO';
   elements.shellyFields.hidden = !isShelly;
+  elements.hikvisionFields.hidden = !isHikvision;
+  elements.zktecoFields.hidden = !isZkteco;
   elements.shellyDeviceId.required = isShelly;
   elements.shellyModel.required = isShelly;
-  elements.deviceId.placeholder = isShelly ? 'SHELLY_001' : 'ESP32_002';
+  elements.hikvisionName.required = isHikvision;
+  elements.hikvisionLocalIp.required = isHikvision;
+  elements.zktecoName.required = isZkteco;
+  elements.zktecoLocalIp.required = isZkteco && elements.zktecoProtocol.value === 'PULL_4370';
+  elements.deviceId.placeholder = isShelly ? 'SHELLY_001' : isHikvision ? 'HIK_001' : isZkteco ? 'ZK_001' : 'ESP32_002';
   elements.deviceIdHelp.textContent = isShelly
     ? 'Identificador interno para mostrar este actuador en ID Industrial.'
-    : 'Debe coincidir exactamente con DISPOSITIVO_ID en el firmware del ESP32.';
+    : isHikvision || isZkteco
+      ? 'Debe coincidir con devices[].id en el archivo config.json del conector local.'
+      : 'Debe coincidir exactamente con DISPOSITIVO_ID en el firmware del ESP32.';
 }
 
 async function loadDevices() {
@@ -412,6 +471,21 @@ function resetForm(device = null) {
   elements.shellyChannel.value = device?.canal ?? 0;
   elements.shellyFunction.value = device?.funcion ?? 'SIRENA';
   elements.shellyControlMode.value = device?.modo_control ?? 'HIBRIDO';
+  elements.hikvisionName.value = device?.nombre ?? '';
+  elements.hikvisionCategory.value = device?.categoria ?? 'CAMARA';
+  elements.hikvisionModel.value = device?.modelo ?? '';
+  elements.hikvisionSerial.value = device?.numero_serie ?? '';
+  elements.hikvisionLocalIp.value = device?.ip_local ?? '';
+  elements.hikvisionPort.value = device?.puerto ?? 80;
+  elements.hikvisionProtocol.value = device?.protocolo ?? 'HTTP';
+  elements.zktecoName.value = device?.nombre ?? '';
+  elements.zktecoCategory.value = device?.categoria ?? 'ASISTENCIA';
+  elements.zktecoModel.value = device?.modelo ?? '';
+  elements.zktecoSerial.value = device?.numero_serie ?? '';
+  elements.zktecoLocalIp.value = device?.ip_local ?? '';
+  elements.zktecoPort.value = device?.puerto ?? 4370;
+  elements.zktecoProtocol.value = device?.protocolo ?? 'PULL_4370';
+  elements.zktecoMachineNumber.value = device?.numero_maquina ?? 1;
   populateLinkedDevices(device?.dispositivo_vinculado_id ?? '');
   updateDeviceType(elements.type.value);
   showMessage(elements.dialogMessage, '');
@@ -489,6 +563,29 @@ async function submitDevice(event) {
       dispositivo_vinculado_id: elements.shellyLinkedDevice.value
     });
   }
+  if (elements.type.value === 'HIKVISION') {
+    Object.assign(payload, {
+      nombre: elements.hikvisionName.value.trim(),
+      categoria: elements.hikvisionCategory.value,
+      modelo: elements.hikvisionModel.value.trim(),
+      numero_serie: elements.hikvisionSerial.value.trim(),
+      ip_local: elements.hikvisionLocalIp.value.trim(),
+      puerto: Number(elements.hikvisionPort.value),
+      protocolo: elements.hikvisionProtocol.value
+    });
+  }
+  if (elements.type.value === 'ZKTECO') {
+    Object.assign(payload, {
+      nombre: elements.zktecoName.value.trim(),
+      categoria: elements.zktecoCategory.value,
+      modelo: elements.zktecoModel.value.trim(),
+      numero_serie: elements.zktecoSerial.value.trim(),
+      ip_local: elements.zktecoLocalIp.value.trim(),
+      puerto: Number(elements.zktecoPort.value),
+      protocolo: elements.zktecoProtocol.value,
+      numero_maquina: Number(elements.zktecoMachineNumber.value)
+    });
+  }
 
   elements.submit.disabled = true;
   showMessage(elements.dialogMessage, 'Guardando...');
@@ -552,6 +649,7 @@ elements.webhookDialog.addEventListener('click', (event) => {
 });
 elements.form.addEventListener('submit', submitDevice);
 elements.type.addEventListener('change', () => updateDeviceType(elements.type.value));
+elements.zktecoProtocol.addEventListener('change', () => updateDeviceType(elements.type.value));
 elements.logout.addEventListener('click', logout);
 elements.table.addEventListener('click', (event) => {
   const button = event.target.closest('button[data-action]');

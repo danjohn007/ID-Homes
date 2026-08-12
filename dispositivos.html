@@ -34,7 +34,7 @@
           <div>
             <p class="section-label">Administracion</p>
             <h1>Dispositivos registrados</h1>
-            <p class="panel-description">Registra equipos de monitoreo ESP32 y actuadores Shelly sin mezclar sus funciones.</p>
+            <p class="panel-description">Administra sensores, actuadores y equipos de seguridad o acceso desde un solo inventario.</p>
           </div>
           <button class="button button-primary" id="newDeviceButton" type="button">Nuevo dispositivo</button>
         </div>
@@ -72,8 +72,10 @@
           <select id="deviceType">
             <option value="ESP32">ESP32 - Monitoreo de sensores</option>
             <option value="SHELLY">Shelly - Actuador de alarma</option>
+            <option value="HIKVISION">Hikvision - Seguridad por ISAPI</option>
+            <option value="ZKTECO">ZKTeco - Acceso y asistencia</option>
           </select>
-          <small>El ESP32 detecta riesgos; Shelly controla una sirena, baliza u otro actuador.</small>
+          <small>Cada tipo conserva su propia configuracion y estado operativo.</small>
         </label>
         <label class="form-field">
           <span>Identificador del dispositivo</span>
@@ -148,6 +150,99 @@
             </label>
           </div>
         </fieldset>
+        <fieldset class="device-fields" id="hikvisionFields" hidden>
+          <legend>Configuracion Hikvision</legend>
+          <p class="device-fields-note">Las credenciales ISAPI permanecen en el conector local. Nunca se guardan en cPanel ni en el navegador.</p>
+          <div class="form-grid">
+            <label class="form-field">
+              <span>Nombre visible</span>
+              <input id="hikvisionName" type="text" minlength="2" maxlength="100" placeholder="Acceso principal" autocomplete="off">
+            </label>
+            <label class="form-field">
+              <span>Categoria</span>
+              <select id="hikvisionCategory">
+                <option value="CAMARA">Camara</option>
+                <option value="NVR_DVR">NVR / DVR</option>
+                <option value="CONTROL_ACCESO">Control de acceso</option>
+                <option value="INTERCOM">Intercomunicador</option>
+                <option value="OTRO">Otro</option>
+              </select>
+            </label>
+            <label class="form-field">
+              <span>Modelo</span>
+              <input id="hikvisionModel" type="text" maxlength="100" placeholder="DS-K1T..." autocomplete="off">
+            </label>
+            <label class="form-field">
+              <span>Numero de serie</span>
+              <input id="hikvisionSerial" type="text" maxlength="100" autocomplete="off">
+            </label>
+            <label class="form-field">
+              <span>IP o host local</span>
+              <input id="hikvisionLocalIp" type="text" maxlength="255" placeholder="192.168.1.64" autocomplete="off">
+              <small>Reserva esta IP en el router. cPanel no accede directamente a ella.</small>
+            </label>
+            <label class="form-field">
+              <span>Puerto ISAPI</span>
+              <input id="hikvisionPort" type="number" min="1" max="65535" step="1" value="80">
+            </label>
+            <label class="form-field">
+              <span>Protocolo local</span>
+              <select id="hikvisionProtocol">
+                <option value="HTTP">HTTP</option>
+                <option value="HTTPS">HTTPS</option>
+              </select>
+            </label>
+          </div>
+        </fieldset>
+        <fieldset class="device-fields" id="zktecoFields" hidden>
+          <legend>Configuracion ZKTeco</legend>
+          <p class="device-fields-note">ID Industrial no guarda huellas, rostros ni contrasenas. El terminal se consulta desde un conector instalado dentro de su misma red.</p>
+          <div class="form-grid">
+            <label class="form-field">
+              <span>Nombre visible</span>
+              <input id="zktecoName" type="text" minlength="2" maxlength="100" placeholder="Reloj de acceso principal" autocomplete="off">
+            </label>
+            <label class="form-field">
+              <span>Uso del equipo</span>
+              <select id="zktecoCategory">
+                <option value="ASISTENCIA">Asistencia</option>
+                <option value="CONTROL_ACCESO">Control de acceso</option>
+                <option value="HIBRIDO">Acceso y asistencia</option>
+                <option value="OTRO">Otro</option>
+              </select>
+            </label>
+            <label class="form-field">
+              <span>Modelo</span>
+              <input id="zktecoModel" type="text" maxlength="100" placeholder="F18, F18 Pro..." autocomplete="off">
+            </label>
+            <label class="form-field">
+              <span>Numero de serie</span>
+              <input id="zktecoSerial" type="text" maxlength="100" autocomplete="off">
+            </label>
+            <label class="form-field">
+              <span>Modo de integracion</span>
+              <select id="zktecoProtocol">
+                <option value="PULL_4370">Terminal local TCP 4370</option>
+                <option value="PUSH_ADMS">PUSH / ADMS</option>
+                <option value="WDMS_API">ZKBio WDMS API</option>
+              </select>
+              <small>El modo depende del modelo y firmware instalado.</small>
+            </label>
+            <label class="form-field">
+              <span>IP o host local</span>
+              <input id="zktecoLocalIp" type="text" maxlength="255" placeholder="192.168.1.201" autocomplete="off">
+              <small>Obligatoria para TCP 4370. Reserva esta IP en el router.</small>
+            </label>
+            <label class="form-field">
+              <span>Puerto</span>
+              <input id="zktecoPort" type="number" min="1" max="65535" step="1" value="4370">
+            </label>
+            <label class="form-field">
+              <span>Numero de maquina</span>
+              <input id="zktecoMachineNumber" type="number" min="1" max="65535" step="1" value="1">
+            </label>
+          </div>
+        </fieldset>
         <p class="form-message" id="dialogMessage" aria-live="polite"></p>
         <div class="dialog-actions">
           <button class="button button-secondary" id="dialogCancel" type="button">Cancelar</button>
@@ -201,6 +296,6 @@
       </section>
     </dialog>
     <script src="js/motion.js?v=20260804-motion1" defer></script>
-    <script src="js/dispositivos.js?v=20260807-webhooks2" defer></script>
+    <script src="js/dispositivos.js?v=20260811-zkteco1" defer></script>
   </body>
 </html>

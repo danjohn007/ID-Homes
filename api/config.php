@@ -11,7 +11,7 @@ if (
     && hash_equals($allowedOrigin, (string) $_SERVER['HTTP_ORIGIN'])
 ) {
     header('Access-Control-Allow-Origin: ' . $allowedOrigin);
-    header('Access-Control-Allow-Headers: Authorization, Content-Type, X-API-TOKEN, X-CSRF-TOKEN, X-Requested-With');
+    header('Access-Control-Allow-Headers: Authorization, Content-Type, X-API-TOKEN, X-CSRF-TOKEN, X-Requested-With, X-HIKVISION-BRIDGE-TOKEN, X-ZKTECO-BRIDGE-TOKEN');
     header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
     header('Vary: Origin');
 }
