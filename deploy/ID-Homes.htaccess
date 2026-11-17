@@ -1,0 +1,143 @@
+Options -Indexes
+
+<IfModule mod_rewrite.c>
+
+    RewriteEngine On
+
+
+    # ==========================================================
+    # 1. HTTPS
+    # ==========================================================
+
+    RewriteCond %{HTTPS} !=on
+    RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
+
+
+    # ==========================================================
+    # 2. ENTRADA PRINCIPAL
+    #
+    # https://idhomes.com.mx/ID-Homes/
+    #
+    # redirige públicamente a:
+    #
+    # https://idhomes.com.mx/ID-Homes/login.html
+    # ==========================================================
+
+    RewriteRule ^$ login.html [R=302,L]
+
+
+    # ==========================================================
+    # 3. LOGIN
+    #
+    # URL pública:
+    # /ID-Homes/login.html
+    #
+    # Archivo real:
+    # /ID-Homes/IoT/web/login.html
+    # ==========================================================
+
+    RewriteRule ^login\.html$ IoT/web/login.html [L]
+
+
+    # ==========================================================
+    # 4. DASHBOARD
+    #
+    # URL pública:
+    # /ID-Homes/index.html
+    #
+    # Archivo real:
+    # /ID-Homes/IoT/web/index.html
+    # ==========================================================
+
+    RewriteRule ^index\.html$ IoT/web/index.html [L]
+
+
+    # ==========================================================
+    # 5. DISPOSITIVOS
+    # ==========================================================
+
+    RewriteRule ^dispositivos\.html$ IoT/web/dispositivos.html [L]
+
+
+    # ==========================================================
+    # 6. ALERTAS
+    # ==========================================================
+
+    RewriteRule ^alertas\.html$ IoT/web/alertas.html [L]
+
+
+    # ==========================================================
+    # 7. USUARIOS
+    # ==========================================================
+
+    RewriteRule ^usuarios\.html$ IoT/web/usuarios.html [L]
+
+
+    # ==========================================================
+    # 8. REPORTES
+    # ==========================================================
+
+    RewriteRule ^reportes\.html$ IoT/web/reportes.html [L]
+
+
+    # ==========================================================
+    # 9. SALUD
+    # ==========================================================
+
+    RewriteRule ^salud\.html$ IoT/web/salud.html [L]
+
+
+    # ==========================================================
+    # 10. CSS
+    #
+    # /ID-Homes/css/login.css
+    #
+    # realmente:
+    # /ID-Homes/IoT/web/css/login.css
+    # ==========================================================
+
+    RewriteRule ^css/(.+)$ IoT/web/css/$1 [L]
+
+
+    # ==========================================================
+    # 11. JAVASCRIPT
+    # ==========================================================
+
+    RewriteRule ^js/(.+)$ IoT/web/js/$1 [L]
+
+
+    # ==========================================================
+    # 12. ASSETS / LOGOS / IMÁGENES
+    # ==========================================================
+
+    RewriteRule ^assets/(.+)$ IoT/web/assets/$1 [L]
+
+
+    # ==========================================================
+    # 13. API
+    #
+    # URL pública:
+    # /ID-Homes/api/auth/login.php
+    #
+    # Archivo real:
+    # /ID-Homes/IoT/api/auth/login.php
+    # ==========================================================
+
+    RewriteRule ^api/(.+)$ IoT/api/$1 [QSA,L]
+
+</IfModule>
+
+
+# ==============================================================
+# SEGURIDAD BÁSICA
+# ==============================================================
+
+<IfModule mod_headers.c>
+
+    Header set X-Content-Type-Options "nosniff"
+
+    Header set X-Frame-Options "SAMEORIGIN"
+
+    Header set Referrer-Policy "strict-origin-when-cross-origin"
+
+</IfModule>

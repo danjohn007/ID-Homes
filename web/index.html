@@ -3,19 +3,20 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="theme-color" content="#12161B">
-    <title>ID Industrial | Panel de monitoreo</title>
+    <meta name="theme-color" content="#0a1020">
+    <title>ID Homes | Panel de control</title>
     <link rel="stylesheet" href="css/dashboard.css?v=20260804-routines-motion1">
-    <link rel="stylesheet" href="css/motion.css?v=20260804-motion1">
+    <link rel="stylesheet" href="css/motion.css?v=20260826-homes1">
+    <link rel="stylesheet" href="css/theme-idhomes.css?v=20260826-homes1">
   </head>
   <body>
     <main class="app-shell">
       <header class="topbar" aria-label="Resumen del sistema">
         <div class="brand-lockup">
-          <img class="brand-logo" src="assets/logo-id-industrial.png" alt="ID Industrial">
+          <img class="brand-logo" id="brandLogo" src="assets/logo-id-homes-dark.png" alt="ID Homes">
           <div class="brand-copy">
-            <p class="eyebrow">Panel industrial</p>
-            <h1>Monitoreo contra incendios</h1>
+            <p class="eyebrow">Tu hogar conectado</p>
+            <h1>Panel de control</h1>
           </div>
         </div>
         <div class="topbar-actions">
@@ -29,7 +30,7 @@
               <path d="M20 11a8.1 8.1 0 0 0-15.5-2M4 5v4h4M4 13a8.1 8.1 0 0 0 15.5 2m.5 4v-4h-4"/>
             </svg>
           </button>
-          <button class="icon-button" id="passwordButton" type="button" aria-label="Cambiar password" title="Cambiar password">
+          <button class="icon-button" id="passwordButton" type="button" aria-label="Cambiar contraseña" title="Cambiar contraseña">
             <svg aria-hidden="true" viewBox="0 0 24 24">
               <path d="M15.5 7.5a4 4 0 1 1-2.8-3.8M14 10l7-7M18 3h3v3M12 12l-2 2M8 16l-2 2"/>
             </svg>
@@ -60,7 +61,7 @@
           <small id="totalDevices">0 registrados</small>
         </article>
         <article class="metric">
-          <span>Sensores de incendio</span>
+          <span>Sensores de seguridad</span>
           <strong id="activeFireSensors">0</strong>
           <small id="totalFireSensors">0 operativos</small>
         </article>
@@ -85,7 +86,7 @@
         <div class="panel-heading">
           <div>
             <p class="section-label">Dispositivos</p>
-            <h2>Sensores por dispositivo</h2>
+            <h2>Sensores de tu hogar</h2>
           </div>
           <div class="panel-heading-actions">
             <a class="download-link" href="salud.html">Salud del sistema</a>
@@ -99,8 +100,8 @@
       <section class="panel shelly-panel" id="shellyPanel" hidden>
         <div class="panel-heading">
           <div>
-            <p class="section-label">Actuadores</p>
-            <h2>Sirenas y equipos Shelly</h2>
+            <p class="section-label">Control</p>
+            <h2>Alarmas y enchufes inteligentes</h2>
           </div>
         </div>
         <div class="shelly-grid" id="shellyGrid" aria-live="polite"></div>
@@ -109,9 +110,9 @@
       <section class="panel routines-panel" id="routinesPanel">
         <div class="panel-heading">
           <div>
-            <p class="section-label">Automatizacion</p>
+            <p class="section-label">Automatización</p>
             <div class="routine-title-line">
-              <h2>Rutinas operativas</h2>
+              <h2>Automatizaciones</h2>
               <span class="readonly-badge">Consulta</span>
             </div>
           </div>
@@ -125,7 +126,7 @@
           <div>
             <p class="section-label">Historial</p>
             <div class="chart-title-line">
-              <h2>Comportamiento de sensores</h2>
+              <h2>Comportamiento de tu hogar</h2>
               <span class="live-indicator" id="chartLiveIndicator">En vivo</span>
             </div>
           </div>
@@ -190,7 +191,7 @@
                   <th>Origen</th>
                   <th>Valor</th>
                   <th>Estado</th>
-                  <th>AtenciÃ³n</th>
+                  <th>Atención</th>
                 </tr>
               </thead>
               <tbody id="alertsTable"></tbody>
@@ -203,7 +204,7 @@
       <form class="alert-form" id="alertActionForm" method="dialog">
         <div class="dialog-heading">
           <div>
-            <p class="section-label">Gestion de alerta</p>
+            <p class="section-label">Gestión de alerta</p>
             <h2 id="alertDialogTitle">Reconocer alerta</h2>
           </div>
           <button class="dialog-close" id="alertDialogClose" type="button" aria-label="Cerrar" title="Cerrar">&times;</button>
@@ -217,7 +218,7 @@
         </label>
         <label class="form-field">
           <span>Comentario</span>
-          <textarea id="alertComment" name="comentario" maxlength="500" rows="4" placeholder="Accion realizada o seguimiento"></textarea>
+          <textarea id="alertComment" name="comentario" maxlength="500" rows="4" placeholder="Acción realizada o seguimiento"></textarea>
         </label>
         <p class="form-message" id="alertFormMessage" aria-live="polite"></p>
         <div class="dialog-actions">
@@ -232,26 +233,26 @@
         <div class="dialog-heading">
           <div>
             <p class="section-label">Cuenta</p>
-            <h2 id="passwordDialogTitle">Cambiar password</h2>
+            <h2 id="passwordDialogTitle">Cambiar contraseña</h2>
           </div>
           <button class="dialog-close" id="passwordDialogClose" type="button" aria-label="Cerrar" title="Cerrar">&times;</button>
         </div>
         <label class="form-field">
-          <span>Password actual</span>
+          <span>Contraseña actual</span>
           <input id="currentPassword" name="password_actual" type="password" maxlength="200" autocomplete="current-password" required>
         </label>
         <label class="form-field">
-          <span>Nuevo password</span>
+          <span>Nueva contraseña</span>
           <input id="newPassword" name="password_nueva" type="password" minlength="8" maxlength="200" autocomplete="new-password" required>
         </label>
         <label class="form-field">
-          <span>Confirmar nuevo password</span>
+          <span>Confirmar nueva contraseña</span>
           <input id="confirmPassword" type="password" minlength="8" maxlength="200" autocomplete="new-password" required>
         </label>
         <p class="form-message" id="passwordMessage" aria-live="polite"></p>
         <div class="dialog-actions">
           <button class="button button-secondary" id="passwordDialogCancel" type="button">Cancelar</button>
-          <button class="button button-primary" id="passwordSubmit" type="submit">Actualizar password</button>
+          <button class="button button-primary" id="passwordSubmit" type="submit">Actualizar contraseña</button>
         </div>
       </form>
     </dialog>
@@ -261,7 +262,7 @@
         <div class="dialog-heading">
           <div>
             <p class="section-label">Mantenimiento MQ-2</p>
-            <h2 id="mq2CalibrationTitle">Registrar calibracion base</h2>
+            <h2 id="mq2CalibrationTitle">Registrar calibración base</h2>
           </div>
           <button class="dialog-close" id="mq2CalibrationClose" type="button" aria-label="Cerrar" title="Cerrar">&times;</button>
         </div>
@@ -288,7 +289,7 @@
         <div class="dialog-heading">
           <div>
             <p class="section-label">Detalle de incidente</p>
-            <h2 id="incidentDialogTitle">Analisis de alerta</h2>
+            <h2 id="incidentDialogTitle">Análisis de alerta</h2>
           </div>
           <button class="dialog-close" id="incidentDialogClose" type="button" aria-label="Cerrar" title="Cerrar">&times;</button>
         </div>
@@ -308,7 +309,7 @@
             </div>
           </figure>
           <figure class="chart-block incident-chart-wide chart-block-compact">
-            <figcaption>Deteccion de flama</figcaption>
+            <figcaption>Detección de flama</figcaption>
             <div class="chart-canvas">
               <canvas id="incidentFlameChart" tabindex="0" aria-label="Deteccion de flama alrededor de la alerta"></canvas>
             </div>
@@ -324,7 +325,8 @@
       </div>
     </template>
 
-    <script src="js/motion.js?v=20260804-motion1" defer></script>
-    <script src="js/dashboard.js?v=20260807-crm-sso1" defer></script>
+    <script src="js/motion.js?v=20260826-homes1" defer></script>
+    <script src="js/theme-idhomes.js?v=20260826-homes1" defer></script>
+    <script src="js/dashboard.js?v=20260826-homes1" defer></script>
   </body>
 </html>

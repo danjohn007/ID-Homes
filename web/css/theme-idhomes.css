@@ -1,0 +1,563 @@
+/* =========================================================
+   ID HOMES · SISTEMA DE TEMA COMPARTIDO
+   ---------------------------------------------------------
+   Se carga DESPUES de dashboard.css / usuarios.css / etc.
+   Redefine los tokens heredados de ID Industrial para que
+   todo el panel adopte la paleta de la app movil ID Homes,
+   con los cuatro momentos del dia: amanecer, dia, atardecer
+   y noche. La hora la resuelve js/theme-idhomes.js.
+========================================================= */
+
+
+/* =========================================================
+   1. NOCHE  (tema por defecto)
+========================================================= */
+
+:root,
+body.theme-night {
+  color-scheme: dark;
+
+  --bg-top: #050918;
+  --bg-middle: #111a33;
+  --bg-bottom: #223253;
+
+  --glow-a: rgba(119, 102, 238, .16);
+  --glow-b: rgba(68, 132, 218, .11);
+
+  --orb-core: #f0edff;
+  --orb-mid: #b9a9f6;
+  --orb-edge: rgba(112, 94, 199, .30);
+  --orb-glow: rgba(164, 146, 255, .37);
+
+  --card: rgba(34, 41, 56, .88);
+  --card-border: rgba(145, 160, 210, .22);
+
+  --input: rgba(23, 29, 43, .80);
+  --input-border: rgba(122, 139, 184, .21);
+
+  --title: #ffffff;
+  --text: #efefeb;
+  --muted: #aaa99f;
+  --placeholder: #a8a79f;
+
+  --button-a: #dceb98;
+  --button-b: #b7cb74;
+  --button-text: #11130c;
+
+  --soft-shadow:
+    0 30px 90px rgba(0, 8, 30, .25),
+    0 10px 34px rgba(0, 0, 0, .12);
+
+  /* Puente con los tokens que ya usa el panel */
+  --surface: var(--card);
+  --surface-soft: var(--input);
+  --surface-inner: rgba(20, 26, 40, .72);
+  --line: var(--card-border);
+  --shadow: var(--soft-shadow);
+
+  --normal: #62caff;
+  --warning: #ffbe57;
+  --critical: #ff6f66;
+  --ok: #7fdca4;
+  --danger: #ff7f76;
+  --success: #9fd278;
+
+  --brand: #2ccde3;
+
+  --chart-text: #eef1f6;
+  --chart-muted: #a9b6c6;
+  --chart-grid: rgba(255, 255, 255, .12);
+
+  --orb-veil: .30;
+}
+
+
+/* =========================================================
+   2. AMANECER
+========================================================= */
+
+body.theme-dawn {
+  color-scheme: light;
+
+  --bg-top: #cbd7e4;
+  --bg-middle: #e7dcd5;
+  --bg-bottom: #fde2c2;
+
+  --glow-a: rgba(255, 153, 104, .25);
+  --glow-b: rgba(125, 184, 232, .20);
+
+  --orb-core: #fff2df;
+  --orb-mid: #ffc590;
+  --orb-edge: rgba(255, 163, 111, .24);
+  --orb-glow: rgba(255, 169, 112, .33);
+
+  --card: rgba(255, 250, 244, .86);
+  --card-border: rgba(197, 154, 112, .26);
+
+  --input: rgba(231, 224, 213, .67);
+  --input-border: rgba(202, 176, 146, .30);
+
+  --title: #181719;
+  --text: #211e1c;
+  --muted: #6f665d;
+  --placeholder: #8e867e;
+
+  --button-a: #add78f;
+  --button-b: #8db86f;
+  --button-text: #14180f;
+
+  --soft-shadow:
+    0 30px 86px rgba(168, 116, 73, .13),
+    0 8px 28px rgba(70, 57, 47, .06);
+
+  --surface: var(--card);
+  --surface-soft: var(--input);
+  --surface-inner: rgba(255, 252, 247, .74);
+  --line: var(--card-border);
+  --shadow: var(--soft-shadow);
+
+  --normal: #0f6f96;
+  --warning: #9c6100;
+  --critical: #bc2f26;
+  --ok: #2c7d4e;
+  --danger: #bc2f26;
+  --success: #2c7d4e;
+
+  --brand: #12879b;
+
+  --chart-text: #211e1c;
+  --chart-muted: #6f665d;
+  --chart-grid: rgba(70, 52, 36, .16);
+
+  --orb-veil: .34;
+}
+
+
+/* =========================================================
+   3. DIA
+========================================================= */
+
+body.theme-day {
+  color-scheme: light;
+
+  --bg-top: #81c2eb;
+  --bg-middle: #c3e3f0;
+  --bg-bottom: #eef5f8;
+
+  --glow-a: rgba(94, 183, 233, .18);
+  --glow-b: rgba(255, 228, 123, .20);
+
+  --orb-core: #fffef1;
+  --orb-mid: #ffe993;
+  --orb-edge: rgba(255, 215, 78, .28);
+  --orb-glow: rgba(255, 225, 101, .43);
+
+  --card: rgba(247, 252, 255, .82);
+  --card-border: rgba(120, 152, 172, .28);
+
+  --input: rgba(215, 229, 236, .70);
+  --input-border: rgba(137, 162, 176, .30);
+
+  --title: #17181a;
+  --text: #1d1d1e;
+  --muted: #666a70;
+  --placeholder: #8e887e;
+
+  --button-a: #a9d38c;
+  --button-b: #86b369;
+  --button-text: #12160e;
+
+  --soft-shadow:
+    0 30px 80px rgba(74, 132, 162, .13),
+    0 8px 26px rgba(54, 88, 108, .05);
+
+  --surface: var(--card);
+  --surface-soft: var(--input);
+  --surface-inner: rgba(252, 254, 255, .76);
+  --line: var(--card-border);
+  --shadow: var(--soft-shadow);
+
+  --normal: #0b6c92;
+  --warning: #8f5900;
+  --critical: #b82c24;
+  --ok: #27764a;
+  --danger: #b82c24;
+  --success: #27764a;
+
+  --brand: #0f7f93;
+
+  --chart-text: #1d1d1e;
+  --chart-muted: #666a70;
+  --chart-grid: rgba(28, 52, 68, .16);
+
+  --orb-veil: .32;
+}
+
+
+/* =========================================================
+   4. ATARDECER
+========================================================= */
+
+body.theme-sunset {
+  color-scheme: dark;
+
+  --bg-top: #362850;
+  --bg-middle: #8b526f;
+  --bg-bottom: #ffad70;
+
+  --glow-a: rgba(255, 91, 129, .24);
+  --glow-b: rgba(251, 161, 89, .27);
+
+  --orb-core: #ffe5ca;
+  --orb-mid: #ffb678;
+  --orb-edge: rgba(255, 126, 93, .27);
+  --orb-glow: rgba(255, 147, 99, .40);
+
+  --card: rgba(61, 42, 47, .82);
+  --card-border: rgba(255, 171, 119, .26);
+
+  --input: rgba(57, 39, 43, .72);
+  --input-border: rgba(211, 121, 85, .30);
+
+  --title: #ffffff;
+  --text: #f5efe8;
+  --muted: #c6b9ae;
+  --placeholder: #b7aaa0;
+
+  --button-a: #ddec94;
+  --button-b: #b4c875;
+  --button-text: #14170c;
+
+  --soft-shadow:
+    0 34px 90px rgba(65, 31, 47, .24),
+    0 9px 26px rgba(49, 27, 35, .14);
+
+  --surface: var(--card);
+  --surface-soft: var(--input);
+  --surface-inner: rgba(48, 33, 37, .70);
+  --line: var(--card-border);
+  --shadow: var(--soft-shadow);
+
+  --normal: #7fd0ff;
+  --warning: #ffc76b;
+  --critical: #ff8076;
+  --ok: #91e0ad;
+  --danger: #ff8076;
+  --success: #91e0ad;
+
+  --brand: #64dcec;
+
+  --chart-text: #f5efe8;
+  --chart-muted: #c6b9ae;
+  --chart-grid: rgba(255, 226, 205, .16);
+
+  --orb-veil: .32;
+}
+
+
+/* =========================================================
+   5. FONDO Y AMBIENTE SUAVE
+   ---------------------------------------------------------
+   El degradado por hora es el mismo del login. El orbe queda
+   muy atenuado y detras del contenido, sin estrellas, aves
+   ni nubes, para no competir con tablas y graficas.
+========================================================= */
+
+html {
+  background: var(--bg-bottom);
+}
+
+body {
+  min-height: 100svh;
+  border-top: 0;
+  color: var(--text);
+  background:
+    radial-gradient(circle at 10% 14%, var(--glow-a), transparent 34%),
+    radial-gradient(circle at 88% 82%, var(--glow-b), transparent 40%),
+    linear-gradient(
+      155deg,
+      var(--bg-top) 0%,
+      var(--bg-middle) 48%,
+      var(--bg-bottom) 100%
+    );
+  background-attachment: fixed;
+  transition: background .8s ease, color .5s ease;
+}
+
+.ambient {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.ambient .orb {
+  position: absolute;
+  top: clamp(-140px, -7vw, -60px);
+  right: clamp(-140px, 1vw, 40px);
+  width: clamp(260px, 26vw, 460px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background:
+    radial-gradient(
+      circle at 35% 30%,
+      rgba(255, 255, 255, .96) 0%,
+      var(--orb-core) 18%,
+      var(--orb-mid) 57%,
+      var(--orb-edge) 78%,
+      transparent 100%
+    );
+  box-shadow: 0 0 55px var(--orb-glow), 0 0 130px var(--orb-glow);
+  opacity: var(--orb-veil);
+  transition: opacity .8s ease;
+}
+
+.ambient .orb-haze {
+  position: absolute;
+  top: -10%;
+  right: -8%;
+  width: min(52vw, 680px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--orb-glow), transparent 67%);
+  filter: blur(40px);
+  opacity: calc(var(--orb-veil) * .8);
+}
+
+/* El contenido siempre por encima del ambiente */
+.app-shell,
+.history-shell,
+.users-shell,
+.reports-shell,
+.health-shell,
+main {
+  position: relative;
+  z-index: 1;
+}
+
+
+/* =========================================================
+   6. SUPERFICIES
+   ---------------------------------------------------------
+   dashboard.css pinta varias tarjetas con un gris fijo
+   (#161c22) que solo funciona en oscuro. Aqui se reemplaza
+   por el token translucido del tema activo.
+========================================================= */
+
+.panel,
+.status-panel,
+.metric,
+.alert-dialog,
+.incident-dialog,
+.alert-form,
+.incident-content {
+  background: var(--surface);
+  border-color: var(--line);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.sensor-card,
+.shelly-card,
+.fire-sensor,
+.reading,
+.routine-card,
+.device-card,
+.empty-state {
+  background: var(--surface-inner);
+  border-color: var(--line);
+}
+
+.button,
+.alert-action-button,
+.icon-button,
+.download-link,
+input,
+select,
+textarea {
+  background: var(--surface-soft);
+  border-color: var(--input-border);
+  color: var(--text);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--placeholder);
+}
+
+.topbar {
+  border-bottom-color: var(--line);
+}
+
+.alerts-table th {
+  color: var(--muted);
+  border-bottom-color: var(--line);
+}
+
+.alerts-table td {
+  border-bottom-color: var(--line);
+}
+
+.alerts-table tbody tr:hover {
+  background: var(--surface-inner);
+}
+
+
+/* =========================================================
+   7. ACENTOS ID HOMES
+========================================================= */
+
+h1, h2, h3,
+.metric strong,
+.status-panel strong {
+  color: var(--title);
+}
+
+.section-label,
+.eyebrow,
+.metric span,
+.metric small,
+small {
+  color: var(--muted);
+}
+
+.brand-logo,
+.brand-lockup img {
+  width: clamp(150px, 19vw, 236px);
+  max-height: 62px;
+}
+
+/* Boton principal: verde de la app */
+.button-primary,
+.alert-action-button.primary,
+button[type="submit"].button-primary {
+  color: var(--button-text);
+  background: linear-gradient(180deg, var(--button-a), var(--button-b));
+  border-color: transparent;
+  font-weight: 700;
+}
+
+.button-primary:hover,
+button[type="submit"].button-primary:hover {
+  filter: brightness(1.04);
+}
+
+/* Estado en vivo / sincronizacion */
+.live-indicator,
+.sync-status {
+  color: var(--brand);
+  border-color: color-mix(in srgb, var(--brand) 45%, transparent);
+}
+
+.readonly-badge {
+  color: var(--muted);
+  border-color: var(--line);
+}
+
+
+/* =========================================================
+   8. FOCO Y MOVIMIENTO
+========================================================= */
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  main > section:hover,
+  main > article:hover {
+    border-color: color-mix(in srgb, var(--brand) 38%, var(--line));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body {
+    transition: none;
+  }
+
+  .ambient .orb {
+    transition: none;
+  }
+}
+
+
+/* =========================================================
+   9. PUENTE PARA usuarios.css
+   ---------------------------------------------------------
+   Las pantallas de Usuarios y Dispositivos no cargan
+   dashboard.css: traen su propio juego de tokens. Se
+   reapuntan aqui a la paleta del tema activo. Como todos
+   son referencias var(), un solo bloque sirve para los
+   cuatro momentos del dia.
+========================================================= */
+
+:root,
+body.theme-dawn,
+body.theme-day,
+body.theme-sunset,
+body.theme-night {
+  --background: transparent;
+  --surface-strong: var(--surface-inner);
+  --border: var(--line);
+  --blue: var(--brand);
+  --yellow: var(--warning);
+  --red: var(--critical);
+  --green: var(--ok);
+}
+
+body {
+  font-family:
+    Inter,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+}
+
+.users-panel,
+.devices-panel,
+.webhooks-panel,
+.users-card,
+.device-detail,
+.reports-card,
+.health-card {
+  background: var(--surface);
+  border-color: var(--line);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.users-topbar,
+.history-topbar,
+.reports-topbar,
+.health-topbar {
+  border-bottom-color: var(--line);
+}
+
+.brand-lockup img {
+  height: auto;
+}
+
+.brand-lockup small,
+.session-user small {
+  color: var(--brand);
+}
+
+table th {
+  color: var(--muted);
+  border-bottom-color: var(--line);
+}
+
+table td {
+  border-bottom-color: var(--line);
+}

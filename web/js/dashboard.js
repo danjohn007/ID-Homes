@@ -212,8 +212,8 @@ function setSystemStatus(nextState) {
   elements.generalState.textContent = label;
   elements.generalDescription.textContent = stateCopy[nextState] ?? stateCopy.NORMAL;
   document.title = nextState === 'ALARMA'
-    ? 'ALARMA | ID Industrial'
-    : 'ID Industrial | Panel de monitoreo';
+    ? 'ALARMA | ID Homes'
+    : 'ID Homes | Panel de control';
 }
 
 function renderMetrics(resumen, dispositivos, alertas) {
@@ -1205,6 +1205,38 @@ function bindChartInteraction(canvas) {
   });
 }
 
+/* =========================================================
+   COLORES SEGUN EL TEMA ACTIVO (ID Homes)
+   ---------------------------------------------------------
+   Las graficas se dibujan en canvas, asi que no heredan las
+   variables CSS. Se leen aqui en cada trazo para que amanecer
+   y dia usen tinta oscura, y atardecer y noche tinta clara.
+========================================================= */
+
+function chartInk() {
+  if (window.IDHomesTheme && typeof window.IDHomesTheme.ink === 'function') {
+    return window.IDHomesTheme.ink();
+  }
+
+  const styles = getComputedStyle(document.body);
+
+  const read = (name, fallback) => {
+    const value = styles.getPropertyValue(name);
+    return value && value.trim() ? value.trim() : fallback;
+  };
+
+  return {
+    text: read('--chart-text', '#e0e0e0'),
+    muted: read('--chart-muted', '#9aa8b3'),
+    grid: read('--chart-grid', 'rgba(154, 168, 179, 0.12)'),
+    normal: read('--normal', '#00a3ff'),
+    warning: read('--warning', '#ffb000'),
+    critical: read('--critical', '#ff453a'),
+    ok: read('--ok', '#2ecf7a')
+  };
+}
+
+
 function drawChart(canvas, config) {
   const preparedCanvas = prepareCanvas(canvas);
   if (!preparedCanvas) return;
@@ -1235,13 +1267,13 @@ function drawChart(canvas, config) {
     const leftValue = config.leftMax - (config.leftMax - config.leftMin) * ratio;
     const rightValue = config.rightMax - (config.rightMax - config.rightMin) * ratio;
 
-    context.strokeStyle = 'rgba(154, 168, 179, 0.12)';
+    context.strokeStyle = chartInk().grid;
     context.beginPath();
     context.moveTo(padding.left, y);
     context.lineTo(width - padding.right, y);
     context.stroke();
 
-    context.fillStyle = '#9aa8b3';
+    context.fillStyle = chartInk().muted;
     context.textAlign = 'right';
     context.fillText(
       config.leftFormatter ? config.leftFormatter(leftValue) : formatAxisValue(leftValue),
@@ -1264,7 +1296,7 @@ function drawChart(canvas, config) {
     const index = xTickCount === 1
       ? 0
       : Math.round((tick / (xTickCount - 1)) * (pointCount - 1));
-    context.fillStyle = '#9aa8b3';
+    context.fillStyle = chartInk().muted;
     context.textAlign = tick === 0 ? 'left' : (tick === xTickCount - 1 ? 'right' : 'center');
     context.fillText(config.labels[index] ?? '', xFor(index), height - 12);
   }
@@ -1272,7 +1304,7 @@ function drawChart(canvas, config) {
   if (Number.isInteger(config.markerIndex) && config.markerIndex >= 0) {
     const markerX = xFor(Math.min(config.markerIndex, pointCount - 1));
     context.save();
-    context.strokeStyle = '#ff453a';
+    context.strokeStyle = chartInk().critical;
     context.lineWidth = 1;
     context.setLineDash([4, 4]);
     context.beginPath();
@@ -1280,7 +1312,7 @@ function drawChart(canvas, config) {
     context.lineTo(markerX, padding.top + plotHeight);
     context.stroke();
     context.setLineDash([]);
-    context.fillStyle = '#ff453a';
+    context.fillStyle = chartInk().critical;
     context.textAlign = markerX > width - 120 ? 'right' : 'left';
     context.fillText('Alerta', markerX + (markerX > width - 120 ? -5 : 5), padding.top + 12);
     context.restore();
@@ -1300,7 +1332,7 @@ function drawChart(canvas, config) {
     context.moveTo(legendX, legendY);
     context.lineTo(legendX + 16, legendY);
     context.stroke();
-    context.fillStyle = '#e0e0e0';
+    context.fillStyle = chartInk().text;
     context.textAlign = 'left';
     context.fillText(serie.label, legendX + 22, legendY + 4);
     legendX += legendWidth;
@@ -1375,14 +1407,14 @@ function drawBinaryTimeline(canvas, config) {
   const bandHeight = Math.max(42, height - padding.top - padding.bottom - 30);
 
   context.font = '11px system-ui, sans-serif';
-  context.fillStyle = '#2ecf7a';
+  context.fillStyle = chartInk().ok;
   context.fillRect(padding.left, 12, 14, 6);
-  context.fillStyle = '#e0e0e0';
+  context.fillStyle = chartInk().text;
   context.textAlign = 'left';
   context.fillText('Normal', padding.left + 20, 18);
-  context.fillStyle = '#ff453a';
+  context.fillStyle = chartInk().critical;
   context.fillRect(padding.left + 88, 12, 14, 6);
-  context.fillStyle = '#e0e0e0';
+  context.fillStyle = chartInk().text;
   context.fillText('Detectada', padding.left + 108, 18);
 
   context.fillStyle = 'rgba(46, 207, 122, 0.14)';
@@ -1401,7 +1433,7 @@ function drawBinaryTimeline(canvas, config) {
       : 'rgba(46, 207, 122, 0.24)';
     context.fillRect(startX, bandTop, Math.max(1, endX - startX), bandHeight);
 
-    context.strokeStyle = value >= 1 ? '#ff453a' : '#2ecf7a';
+    context.strokeStyle = value >= 1 ? chartInk().critical : chartInk().ok;
     context.lineWidth = 2;
     context.beginPath();
     context.moveTo(xFor(index), bandTop);
@@ -1409,14 +1441,14 @@ function drawBinaryTimeline(canvas, config) {
     context.stroke();
   });
 
-  context.strokeStyle = 'rgba(224, 224, 224, 0.16)';
+  context.strokeStyle = chartInk().grid;
   context.lineWidth = 1;
   context.strokeRect(padding.left, bandTop, plotWidth, bandHeight);
 
   if (Number.isInteger(config.markerIndex) && config.markerIndex >= 0) {
     const markerX = xFor(Math.min(config.markerIndex, pointCount - 1));
     context.save();
-    context.strokeStyle = '#ff453a';
+    context.strokeStyle = chartInk().critical;
     context.lineWidth = 2;
     context.setLineDash([4, 4]);
     context.beginPath();
@@ -1434,7 +1466,7 @@ function drawBinaryTimeline(canvas, config) {
     const index = xTickCount === 1
       ? 0
       : Math.round((tick / (xTickCount - 1)) * (pointCount - 1));
-    context.fillStyle = '#9aa8b3';
+    context.fillStyle = chartInk().muted;
     context.textAlign = tick === 0 ? 'left' : (tick === xTickCount - 1 ? 'right' : 'center');
     context.fillText(config.labels[index] ?? '', xFor(index), height - 12);
   }
@@ -1517,14 +1549,14 @@ function renderCharts(series, gasThreshold, rangeHours) {
       {
         label: 'Temperatura',
         values: temperature,
-        color: '#00a3ff',
+        color: chartInk().normal,
         axis: 'left',
         tooltipFormatter: (value) => `${Number(value.toFixed(2))} °C`
       },
       {
         label: 'Humedad',
         values: humidity,
-        color: '#2ecf7a',
+        color: chartInk().ok,
         axis: 'right',
         tooltipFormatter: (value) => `${Number(value.toFixed(2))} %`
       }
@@ -1545,14 +1577,14 @@ function renderCharts(series, gasThreshold, rangeHours) {
       {
         label: 'Humo/Gas',
         values: gas,
-        color: '#ffb000',
+        color: chartInk().warning,
         axis: 'left',
         tooltipFormatter: (value) => `${Number(value.toFixed(2))} ADC`
       },
       {
         label: 'Umbral',
         values: series.map(() => gasThreshold),
-        color: '#ff453a',
+        color: chartInk().critical,
         axis: 'left',
         width: 1,
         dash: [6, 5],
@@ -1581,7 +1613,7 @@ function renderCharts(series, gasThreshold, rangeHours) {
       {
         label: 'Alertas',
         values: alarmEvents,
-        color: '#ff453a',
+        color: chartInk().critical,
         axis: 'left',
         stepped: true,
         tooltipFormatter: (value) => Math.round(value).toString()
@@ -1589,7 +1621,7 @@ function renderCharts(series, gasThreshold, rangeHours) {
       {
         label: 'Muestras con revisión',
         values: sensorReviews,
-        color: '#ffb000',
+        color: chartInk().warning,
         axis: 'left',
         stepped: true,
         tooltipFormatter: (value) => Math.round(value).toString()
@@ -1707,14 +1739,14 @@ function renderIncident(payload) {
       {
         label: 'Temperatura',
         values: temperature,
-        color: '#00a3ff',
+        color: chartInk().normal,
         axis: 'left',
         tooltipFormatter: (value) => `${Number(value.toFixed(2))} °C`
       },
       {
         label: 'Humedad',
         values: humidity,
-        color: '#2ecf7a',
+        color: chartInk().ok,
         axis: 'right',
         tooltipFormatter: (value) => `${Number(value.toFixed(2))} %`
       }
@@ -1736,14 +1768,14 @@ function renderIncident(payload) {
       {
         label: 'Humo/Gas',
         values: gas,
-        color: '#ffb000',
+        color: chartInk().warning,
         axis: 'left',
         tooltipFormatter: (value) => `${Number(value.toFixed(2))} ADC`
       },
       {
         label: 'Umbral',
         values: series.map(() => gasThreshold),
-        color: '#ff453a',
+        color: chartInk().critical,
         axis: 'left',
         width: 1,
         dash: [6, 5],
@@ -2194,6 +2226,21 @@ window.addEventListener('resize', () => {
       renderIncident(lastIncidentPayload);
     }
   }, 150);
+});
+
+/* Al cambiar el momento del dia (amanecer, dia, atardecer,
+   noche) las graficas se redibujan con la tinta del tema. */
+document.addEventListener('idhomes:themechange', () => {
+  if (lastChartState) {
+    renderCharts(
+      lastChartState.series,
+      lastChartState.gasThreshold,
+      lastChartState.rangeHours
+    );
+  }
+  if (elements.incidentDialog.open && lastIncidentPayload) {
+    renderIncident(lastIncidentPayload);
+  }
 });
 
 elements.refreshButton.addEventListener('click', refreshAll);

@@ -2,8 +2,10 @@ html {
   scroll-behavior: smooth;
 }
 
+/* El borde superior ambar era de ID Industrial.
+   ID Homes usa el degradado por hora de theme-idhomes.css. */
 body {
-  border-top: 3px solid #ffb000;
+  border-top: 0;
 }
 
 button,
@@ -26,7 +28,7 @@ a:focus-visible,
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
-  outline: 2px solid #00a3ff;
+  outline: 2px solid var(--brand, #2ccde3);
   outline-offset: 2px;
 }
 
@@ -40,7 +42,7 @@ textarea:focus-visible {
 
   main > section:hover,
   main > article:hover {
-    border-color: #465762;
+    border-color: var(--line, #465762);
   }
 }
 
