@@ -42,7 +42,6 @@ type FormState = {
   apagadoAutomatico: boolean;
   permiteRutinas: boolean;
   requiereConfirmacion: boolean;
-  notificarCambiosExternos: boolean;
   descripcion: string;
   modoControl: MobileShellySaveInput['modo_control'];
   vinculadoId: string;
@@ -54,8 +53,7 @@ const initialForm: FormState = {
   generacion: 'GEN2_PLUS', ipLocal: '', canal: '0', funcion: 'SIRENA',
   categoria: 'SEGURIDAD', tipoCarga: 'DESCONOCIDA', corrienteMax: '',
   potenciaMax: '', tiempoMaxMinutos: '', apagadoAutomatico: false,
-  permiteRutinas: false, requiereConfirmacion: true, notificarCambiosExternos: true,
-  descripcion: '',
+  permiteRutinas: false, requiereConfirmacion: true, descripcion: '',
   modoControl: 'HIBRIDO', vinculadoId: '', estado: 'Activo',
 };
 
@@ -199,7 +197,6 @@ export default function ShellyFormScreen() {
             apagadoAutomatico: Number(item.apagado_automatico) === 1,
             permiteRutinas: Number(item.permite_rutinas) === 1,
             requiereConfirmacion: Number(item.requiere_confirmacion) === 1,
-            notificarCambiosExternos: Number(item.notificar_cambios_externos) === 1,
             descripcion: item.descripcion ?? '',
             modoControl: item.modo_control,
             vinculadoId: item.dispositivo_vinculado_id ?? '',
@@ -253,7 +250,6 @@ export default function ShellyFormScreen() {
     apagado_automatico: form.apagadoAutomatico,
     permite_rutinas: form.categoria === 'SEGURIDAD' ? false : form.permiteRutinas,
     requiere_confirmacion: form.requiereConfirmacion,
-    notificar_cambios_externos: form.notificarCambiosExternos,
     descripcion: form.descripcion.trim(), modo_control: form.modoControl,
     dispositivo_vinculado_id: form.vinculadoId, estado: form.estado,
   }), [editing, form]);
@@ -335,8 +331,7 @@ export default function ShellyFormScreen() {
             </View>
             <ToggleRow description="Shelly apagara la salida aunque la app este cerrada." label="Apagado automatico" onValueChange={(value) => update('apagadoAutomatico', value)} value={form.apagadoAutomatico} />
             {form.apagadoAutomatico ? <Field keyboardType="number-pad" label="Tiempo maximo encendido (minutos)" onChangeText={(value) => update('tiempoMaxMinutos', value)} value={form.tiempoMaxMinutos} /> : null}
-             <ToggleRow description="Solicita confirmacion antes de energizar la salida." label="Confirmacion de encendido" onValueChange={(value) => update('requiereConfirmacion', value)} value={form.requiereConfirmacion} />
-             <ToggleRow description="Avisa si Shelly Control o el boton fisico cambia esta salida." label="Avisar cambios externos" onValueChange={(value) => update('notificarCambiosExternos', value)} value={form.notificarCambiosExternos} />
+            <ToggleRow description="Solicita confirmacion antes de energizar la salida." label="Confirmacion de encendido" onValueChange={(value) => update('requiereConfirmacion', value)} value={form.requiereConfirmacion} />
             {form.categoria === 'SEGURIDAD' ? (
               <View style={styles.safetyNotice}>
                 <Ionicons color={colors.warning} name="shield-checkmark-outline" size={21} />

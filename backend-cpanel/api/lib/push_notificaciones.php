@@ -40,6 +40,61 @@ function idindPushActualizarCola(
     ]);
 }
 
+function idindPushTomarPendientes(
+    PDO $pdo,
+    int $maximo = 20,
+    ?string $dedupeKey = null
+): array
+{
+    $limite = max(1, min(50, $maximo));
+    $dedupeKey = trim((string) $dedupeKey);
+    $filtroDedupe = $dedupeKey !== ''
+        ? ' AND np.dedupe_key = :dedupe_key'
+        : '';
+    $pdo->beginTransaction();
+    $stmt = $pdo->prepare(
+        "SELECT
+            np.id, np.alerta_id, np.origen_tipo, np.push_token_id,
+            np.titulo, np.cuerpo, np.payload_json, np.intentos,
+            mp.expo_push_token
+         FROM notificaciones_push np
+         INNER JOIN moviles_push mp ON mp.id = np.push_token_id
+         WHERE np.estado IN ('PENDIENTE', 'REINTENTAR')
+           AND np.disponible_en <= UTC_TIMESTAMP()
+           AND np.intentos < :max_intentos
+           AND mp.activo = 1
+           {$filtroDedupe}
+         ORDER BY np.id ASC
+         LIMIT {$limite}
+         FOR UPDATE"
+    );
+    $stmt->bindValue(':max_intentos', IDIND_PUSH_MAX_ATTEMPTS_HELPER, PDO::PARAM_INT);
+    if ($dedupeKey !== '') {
+        $stmt->bindValue(':dedupe_key', $dedupeKey, PDO::PARAM_STR);
+    }
+    $stmt->execute();
+    $pendientes = $stmt->fetchAll();
+
+    if ($pendientes === []) {
+        $pdo->commit();
+        return [];
+    }
+
+    $ids = array_map(static function (array $fila): int {
+        return (int) $fila['id'];
+    }, $pendientes);
+    $marcadores = implode(',', array_fill(0, count($ids), '?'));
+    $stmtTomar = $pdo->prepare(
+        "UPDATE notificaciones_push
+         SET estado = 'ENVIANDO', intentos = intentos + 1, ultimo_error = NULL
+         WHERE id IN ({$marcadores})"
+    );
+    $stmtTomar->execute($ids);
+    $pdo->commit();
+
+    return $pendientes;
+}
+
 function idindPushTomarPendientesPorAlertas(
     PDO $pdo,
     array $alertaIds,
@@ -56,8 +111,7 @@ function idindPushTomarPendientesPorAlertas(
     $pdo->beginTransaction();
     $stmt = $pdo->prepare(
         "SELECT
-            np.id, np.alerta_id, np.origen_tipo, np.evento_shelly_id,
-            np.push_token_id, np.titulo, np.cuerpo,
+            np.id, np.alerta_id, np.origen_tipo, np.push_token_id, np.titulo, np.cuerpo,
             np.payload_json, np.intentos, mp.expo_push_token
          FROM notificaciones_push np
          INNER JOIN moviles_push mp ON mp.id = np.push_token_id
@@ -98,55 +152,6 @@ function idindPushTomarPendientesPorAlertas(
     return $pendientes;
 }
 
-function idindPushTomarPendientesPorIds(
-    PDO $pdo,
-    array $notificacionIds,
-    int $maximo = 20
-): array {
-    $ids = array_values(array_unique(array_filter(array_map('intval', $notificacionIds))));
-    if ($ids === []) {
-        return [];
-    }
-
-    $marcadores = implode(',', array_fill(0, count($ids), '?'));
-    $limite = max(1, min(50, $maximo));
-    $pdo->beginTransaction();
-    $stmt = $pdo->prepare(
-        "SELECT
-            np.id, np.alerta_id, np.origen_tipo, np.evento_shelly_id,
-            np.push_token_id, np.titulo, np.cuerpo,
-            np.payload_json, np.intentos, mp.expo_push_token
-         FROM notificaciones_push np
-         INNER JOIN moviles_push mp ON mp.id = np.push_token_id
-         WHERE np.id IN ({$marcadores})
-           AND np.estado IN ('PENDIENTE', 'REINTENTAR')
-           AND np.disponible_en <= UTC_TIMESTAMP()
-           AND np.intentos < ?
-           AND mp.activo = 1
-         ORDER BY np.id ASC
-         LIMIT {$limite}
-         FOR UPDATE"
-    );
-    $stmt->execute(array_merge($ids, [IDIND_PUSH_MAX_ATTEMPTS_HELPER]));
-    $pendientes = $stmt->fetchAll();
-    if ($pendientes === []) {
-        $pdo->commit();
-        return [];
-    }
-
-    $tomados = array_map(static function (array $fila): int {
-        return (int) $fila['id'];
-    }, $pendientes);
-    $marcadoresTomados = implode(',', array_fill(0, count($tomados), '?'));
-    $pdo->prepare(
-        "UPDATE notificaciones_push
-         SET estado = 'ENVIANDO', intentos = intentos + 1, ultimo_error = NULL
-         WHERE id IN ({$marcadoresTomados})"
-    )->execute($tomados);
-    $pdo->commit();
-    return $pendientes;
-}
-
 function idindPushEnviarFilas(
     PDO $pdo,
     array $pendientes,
@@ -179,29 +184,33 @@ function idindPushEnviarFilas(
             if (!is_array($data)) {
                 $data = [];
             }
-            $origenTipo = strtoupper((string) ($fila['origen_tipo'] ?? 'ALERTA'));
-            $alertaId = (int) ($fila['alerta_id'] ?? 0);
-            if ($origenTipo === 'ALERTA' && $alertaId > 0) {
+            $origin = strtoupper((string) ($fila['origen_tipo'] ?? $data['tipo'] ?? 'ALERTA'));
+            $message = [
+                'to' => (string) $fila['expo_push_token'],
+                'sound' => 'default',
+                'title' => (string) $fila['titulo'],
+                'body' => (string) $fila['cuerpo'],
+            ];
+
+            if ($origin === 'ALERTA') {
+                $alertaId = (int) $fila['alerta_id'];
                 $data['alertaId'] = $alertaId;
                 $data['alerta_id'] = $alertaId;
                 $data['tipo'] = 'ALERTA';
                 $data['url'] = '/alerta/' . $alertaId;
+                $message['priority'] = 'high';
+                $message['channelId'] = 'critical-alerts';
+            } elseif ($origin === 'COTIZACION') {
+                $data['tipo'] = 'COTIZACION';
+                $message['priority'] = 'default';
+                $message['channelId'] = 'crm-updates';
             } else {
-                $data['tipo'] = $data['tipo'] ?? $origenTipo;
-                $eventoShellyId = (int) ($fila['evento_shelly_id'] ?? 0);
-                if ($eventoShellyId > 0) {
-                    $data['evento_shelly_id'] = $eventoShellyId;
-                }
+                $data['tipo'] = $origin;
+                $message['priority'] = 'default';
             }
-            return [
-                'to' => (string) $fila['expo_push_token'],
-                'sound' => 'default',
-                'priority' => 'high',
-                'channelId' => 'critical-alerts',
-                'title' => (string) $fila['titulo'],
-                'body' => (string) $fila['cuerpo'],
-                'data' => $data,
-            ];
+
+            $message['data'] = $data;
+            return $message;
         },
         $pendientes
     );
@@ -322,14 +331,5 @@ function idindPushEnviarPendientesPorAlertas(
     array $configLocal = []
 ): array {
     $pendientes = idindPushTomarPendientesPorAlertas($pdo, $alertaIds);
-    return idindPushEnviarFilas($pdo, $pendientes, $configLocal, 2, 5);
-}
-
-function idindPushEnviarPendientesPorIds(
-    PDO $pdo,
-    array $notificacionIds,
-    array $configLocal = []
-): array {
-    $pendientes = idindPushTomarPendientesPorIds($pdo, $notificacionIds);
     return idindPushEnviarFilas($pdo, $pendientes, $configLocal, 2, 5);
 }

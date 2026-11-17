@@ -2,8 +2,6 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/auth.php';
-require_once __DIR__ . '/lib/hikvision.php';
-require_once __DIR__ . '/lib/zkteco.php';
 
 $usuarioActual = requerirSesion(['ADMIN']);
 $clienteId = (int) $usuarioActual['cliente_id'];
@@ -42,7 +40,7 @@ function dispositivoEstadoValido(string $estado): string
 function dispositivoTipoValido(string $tipo): string
 {
     $tipo = strtoupper(trim($tipo));
-    if (!in_array($tipo, ['ESP32', 'SHELLY', 'HIKVISION', 'ZKTECO'], true)) {
+    if (!in_array($tipo, ['ESP32', 'SHELLY'], true)) {
         responderJson(422, ['ok' => false, 'error' => 'Tipo de dispositivo invalido']);
     }
     return $tipo;
@@ -125,22 +123,6 @@ function obtenerShellyCliente(PDO $pdo, string $id, int $clienteId): ?array
     return $stmt->fetch() ?: null;
 }
 
-function obtenerHikvisionClienteAdmin(PDO $pdo, string $id, int $clienteId): ?array
-{
-    if (!idindHikvisionDisponible($pdo)) return null;
-    $stmt = $pdo->prepare('SELECT * FROM equipos_hikvision WHERE id = :id AND cliente_id = :cliente_id LIMIT 1');
-    $stmt->execute(['id' => $id, 'cliente_id' => $clienteId]);
-    return $stmt->fetch() ?: null;
-}
-
-function obtenerZktecoClienteAdmin(PDO $pdo, string $id, int $clienteId): ?array
-{
-    if (!idindZktecoDisponible($pdo)) return null;
-    $stmt = $pdo->prepare('SELECT * FROM equipos_zkteco WHERE id = :id AND cliente_id = :cliente_id LIMIT 1');
-    $stmt->execute(['id' => $id, 'cliente_id' => $clienteId]);
-    return $stmt->fetch() ?: null;
-}
-
 function esp32Publico(array $dispositivo): array
 {
     return [
@@ -198,16 +180,6 @@ function idEquipoDisponible(PDO $pdo, string $id): bool
         if ($stmt->fetchColumn()) {
             return false;
         }
-    }
-    if (idindHikvisionDisponible($pdo)) {
-        $stmt = $pdo->prepare('SELECT id FROM equipos_hikvision WHERE id = :id LIMIT 1');
-        $stmt->execute(['id' => $id]);
-        if ($stmt->fetchColumn()) return false;
-    }
-    if (idindZktecoDisponible($pdo)) {
-        $stmt = $pdo->prepare('SELECT id FROM equipos_zkteco WHERE id = :id LIMIT 1');
-        $stmt->execute(['id' => $id]);
-        if ($stmt->fetchColumn()) return false;
     }
     return true;
 }
@@ -342,14 +314,6 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET') {
         }
         $equipos = array_merge($equipos, array_map('shellyPublico', $filasShelly));
     }
-    $hikvisionDisponible = idindHikvisionDisponible($pdo);
-    if ($hikvisionDisponible) {
-        $equipos = array_merge($equipos, idindHikvisionCliente($pdo, $clienteId));
-    }
-    $zktecoDisponible = idindZktecoDisponible($pdo);
-    if ($zktecoDisponible) {
-        $equipos = array_merge($equipos, idindZktecoCliente($pdo, $clienteId));
-    }
     usort($equipos, static function (array $a, array $b): int {
         return [$a['ubicacion'], $a['tipo'], $a['id']] <=> [$b['ubicacion'], $b['tipo'], $b['id']];
     });
@@ -359,8 +323,6 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET') {
             'dispositivos' => $equipos,
             'shelly_disponible' => $shellyDisponible,
             'shelly_operacion_disponible' => $shellyOperacionDisponible,
-            'hikvision_disponible' => $hikvisionDisponible,
-            'zkteco_disponible' => $zktecoDisponible,
         ],
     ]);
 }
@@ -385,51 +347,6 @@ if ($accion === 'crear') {
         );
         $stmt->execute(['id' => $id, 'cliente_id' => $clienteId, 'ubicacion' => $ubicacion, 'estado' => $estado]);
         responderJson(201, ['ok' => true, 'data' => ['dispositivo' => esp32Publico(obtenerEsp32Cliente($pdo, $id, $clienteId) ?: [])]]);
-    }
-    if ($tipo === 'HIKVISION') {
-        idindHikvisionRequerirTablas($pdo);
-        $configHik = idindHikvisionConfiguracion($data);
-        $stmt = $pdo->prepare(
-            'INSERT INTO equipos_hikvision (
-               id, cliente_id, nombre, ubicacion, categoria, modelo, numero_serie,
-               ip_local, puerto, protocolo, estado
-             ) VALUES (
-               :id, :cliente_id, :nombre, :ubicacion, :categoria, :modelo, :serial,
-               :ip, :puerto, :protocolo, :estado
-             )'
-        );
-        $stmt->execute([
-            'id' => $id, 'cliente_id' => $clienteId, 'nombre' => $configHik['nombre'],
-            'ubicacion' => $ubicacion, 'categoria' => $configHik['categoria'],
-            'modelo' => $configHik['modelo'], 'serial' => $configHik['numero_serie'],
-            'ip' => $configHik['ip_local'], 'puerto' => $configHik['puerto'],
-            'protocolo' => $configHik['protocolo'], 'estado' => $estado,
-        ]);
-        $equipo = idindHikvisionCliente($pdo, $clienteId, $id);
-        responderJson(201, ['ok' => true, 'data' => ['dispositivo' => $equipo[0] ?? null]]);
-    }
-    if ($tipo === 'ZKTECO') {
-        idindZktecoRequerirTablas($pdo);
-        $configZk = idindZktecoConfiguracion($data);
-        $stmt = $pdo->prepare(
-            'INSERT INTO equipos_zkteco (
-               id, cliente_id, nombre, ubicacion, categoria, modelo, numero_serie,
-               ip_local, puerto, protocolo, numero_maquina, estado
-             ) VALUES (
-               :id, :cliente_id, :nombre, :ubicacion, :categoria, :modelo, :serial,
-               :ip, :puerto, :protocolo, :numero_maquina, :estado
-             )'
-        );
-        $stmt->execute([
-            'id' => $id, 'cliente_id' => $clienteId, 'nombre' => $configZk['nombre'],
-            'ubicacion' => $ubicacion, 'categoria' => $configZk['categoria'],
-            'modelo' => $configZk['modelo'], 'serial' => $configZk['numero_serie'],
-            'ip' => $configZk['ip_local'], 'puerto' => $configZk['puerto'],
-            'protocolo' => $configZk['protocolo'], 'numero_maquina' => $configZk['numero_maquina'],
-            'estado' => $estado,
-        ]);
-        $equipo = idindZktecoCliente($pdo, $clienteId, $id);
-        responderJson(201, ['ok' => true, 'data' => ['dispositivo' => $equipo[0] ?? null]]);
     }
     requerirTablaShelly($pdo);
     $config = configuracionShellyValida($pdo, $data, $clienteId);
@@ -467,54 +384,6 @@ if ($accion === 'actualizar') {
         );
         $stmt->execute(['ubicacion' => $ubicacion, 'estado' => $estado, 'id' => $id, 'cliente_id' => $clienteId]);
         responderJson(200, ['ok' => true, 'data' => ['dispositivo' => esp32Publico(obtenerEsp32Cliente($pdo, $id, $clienteId) ?: [])]]);
-    }
-    if ($tipo === 'HIKVISION') {
-        idindHikvisionRequerirTablas($pdo);
-        $actual = obtenerHikvisionClienteAdmin($pdo, $id, $clienteId);
-        if (!$actual) responderJson(404, ['ok' => false, 'error' => 'Equipo Hikvision no encontrado']);
-        $ubicacion = dispositivoUbicacionValida((string) ($data['ubicacion'] ?? $actual['ubicacion']));
-        $estado = dispositivoEstadoValido((string) ($data['estado'] ?? $actual['estado']));
-        $configHik = idindHikvisionConfiguracion($data, $actual);
-        $stmt = $pdo->prepare(
-            'UPDATE equipos_hikvision SET nombre = :nombre, ubicacion = :ubicacion,
-             categoria = :categoria, modelo = :modelo, numero_serie = :serial,
-             ip_local = :ip, puerto = :puerto, protocolo = :protocolo, estado = :estado
-             WHERE id = :id AND cliente_id = :cliente_id'
-        );
-        $stmt->execute([
-            'nombre' => $configHik['nombre'], 'ubicacion' => $ubicacion,
-            'categoria' => $configHik['categoria'], 'modelo' => $configHik['modelo'],
-            'serial' => $configHik['numero_serie'], 'ip' => $configHik['ip_local'],
-            'puerto' => $configHik['puerto'], 'protocolo' => $configHik['protocolo'],
-            'estado' => $estado, 'id' => $id, 'cliente_id' => $clienteId,
-        ]);
-        $equipo = idindHikvisionCliente($pdo, $clienteId, $id);
-        responderJson(200, ['ok' => true, 'data' => ['dispositivo' => $equipo[0] ?? null]]);
-    }
-    if ($tipo === 'ZKTECO') {
-        idindZktecoRequerirTablas($pdo);
-        $actual = obtenerZktecoClienteAdmin($pdo, $id, $clienteId);
-        if (!$actual) responderJson(404, ['ok' => false, 'error' => 'Equipo ZKTeco no encontrado']);
-        $ubicacion = dispositivoUbicacionValida((string) ($data['ubicacion'] ?? $actual['ubicacion']));
-        $estado = dispositivoEstadoValido((string) ($data['estado'] ?? $actual['estado']));
-        $configZk = idindZktecoConfiguracion($data, $actual);
-        $stmt = $pdo->prepare(
-            'UPDATE equipos_zkteco SET nombre = :nombre, ubicacion = :ubicacion,
-             categoria = :categoria, modelo = :modelo, numero_serie = :serial,
-             ip_local = :ip, puerto = :puerto, protocolo = :protocolo,
-             numero_maquina = :numero_maquina, estado = :estado
-             WHERE id = :id AND cliente_id = :cliente_id'
-        );
-        $stmt->execute([
-            'nombre' => $configZk['nombre'], 'ubicacion' => $ubicacion,
-            'categoria' => $configZk['categoria'], 'modelo' => $configZk['modelo'],
-            'serial' => $configZk['numero_serie'], 'ip' => $configZk['ip_local'],
-            'puerto' => $configZk['puerto'], 'protocolo' => $configZk['protocolo'],
-            'numero_maquina' => $configZk['numero_maquina'], 'estado' => $estado,
-            'id' => $id, 'cliente_id' => $clienteId,
-        ]);
-        $equipo = idindZktecoCliente($pdo, $clienteId, $id);
-        responderJson(200, ['ok' => true, 'data' => ['dispositivo' => $equipo[0] ?? null]]);
     }
     requerirTablaShelly($pdo);
     $actual = obtenerShellyCliente($pdo, $id, $clienteId);

@@ -1,5 +1,4 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useRouter, type Href } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -31,7 +30,6 @@ const roleNames = {
 } as const;
 
 export default function AccountScreen() {
-  const router = useRouter();
   const { signOut, token, user } = useAuth();
   const [pushStatus, setPushStatus] = useState<MobilePushStatus | null>(null);
   const [localPushToken, setLocalPushToken] = useState<string | null>(null);
@@ -83,7 +81,7 @@ export default function AccountScreen() {
         );
         await savePushToken(registration.token);
         setLocalPushToken(registration.token);
-        setPushMessage('Notificaciones activadas en este telefono.');
+        setPushMessage('Alertas criticas activadas en este telefono.');
       }
       setPushStatus(await api.getMobilePushStatus(token));
     } catch (error) {
@@ -123,23 +121,6 @@ export default function AccountScreen() {
         </View>
       </View>
 
-      <Pressable
-        accessibilityRole="button"
-        onPress={() => router.push('/(tabs)/rutinas' as Href)}
-        style={({ pressed }) => [styles.automation, pressed && styles.pressed]}
-      >
-        <View style={styles.automationIcon}>
-          <Ionicons color={colors.warning} name="timer-outline" size={24} />
-        </View>
-        <View style={styles.automationCopy}>
-          <Text style={styles.securityTitle}>Rutinas y automatizacion</Text>
-          <Text style={styles.securityText}>
-            Consulta, ejecuta y administra horarios para equipos compatibles.
-          </Text>
-        </View>
-        <Ionicons color={colors.muted} name="chevron-forward" size={22} />
-      </Pressable>
-
       <View style={styles.notifications}>
         <View style={styles.notificationHeader}>
           <View style={styles.notificationIcon}>
@@ -150,10 +131,10 @@ export default function AccountScreen() {
             />
           </View>
           <View style={styles.notificationCopy}>
-            <Text style={styles.securityTitle}>Alertas y conectividad</Text>
+            <Text style={styles.securityTitle}>Alertas criticas</Text>
             <Text style={styles.securityText}>
-              Recibe avisos por flama, humo/gas, temperatura peligrosa o la
-              desconexion de un ESP32 aunque la app no este abierta.
+              Recibe avisos por flama, humo/gas o temperatura peligrosa aunque
+              la app no este abierta.
             </Text>
           </View>
         </View>
@@ -272,29 +253,6 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
   },
   securityCopy: {
-    flex: 1,
-    gap: spacing.xs,
-  },
-  automation: {
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    flexDirection: 'row',
-    gap: spacing.md,
-    minHeight: 84,
-    padding: spacing.lg,
-  },
-  automationIcon: {
-    alignItems: 'center',
-    backgroundColor: colors.surfaceStrong,
-    borderRadius: radius.md,
-    height: 46,
-    justifyContent: 'center',
-    width: 46,
-  },
-  automationCopy: {
     flex: 1,
     gap: spacing.xs,
   },

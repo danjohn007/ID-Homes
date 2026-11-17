@@ -78,9 +78,7 @@ try {
         'dispositivos_revisados' => count($dispositivos),
         'dispositivos_offline' => $offline,
         'alertas_creadas' => count($nuevas),
-        'alertas_ids_creadas' => $nuevas,
         'alertas_resueltas' => count($resueltas),
-        'alertas_ids_resueltas' => $resueltas,
         'push' => $push,
     ]);
 } catch (Throwable $error) {
